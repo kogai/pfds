@@ -1,6 +1,4 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
+#![feature(box_syntax)]
+#![feature(box_patterns)]
+
+mod list;
