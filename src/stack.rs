@@ -7,6 +7,7 @@ trait List<T: Clone>: Sized {
     fn head(&self) -> T;
     fn tail(&self) -> Self;
     fn concat(&self, ys: Self) -> Self;
+    fn update(&self, index: i32, x: T) -> Self;
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -54,6 +55,18 @@ impl<T: Clone + Debug> List<T> for Stack<T> {
             &Stack::Node(ref head, box ref tail) => tail.concat(ys).cons(head.clone()),
         }
     }
+
+    fn update(&self, index: i32, x: T) -> Self {
+        match self {
+            &Stack::Nil => panic!("List is empty!"),
+            &Stack::Node(ref head, box ref tail) => {
+                match index {
+                    0 => tail.cons(x),
+                    index => tail.update(index - 1, x).cons(head.clone()),
+                }
+            },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -96,12 +109,18 @@ mod tests {
     #[test]
     fn test_concat() {
         let actual = Stack::empty().cons(2).cons(1).concat(Stack::empty().cons(4).cons(3));
-
-        println!("actual {:?}", actual);
-
         let expect =
             Stack::Node(1,
                        box Stack::Node(2, box Stack::Node(3, box Stack::Node(4, box Stack::Nil))));
+        assert!(actual == expect);
+    }
+
+    #[test]
+    fn test_update() {
+        let actual = Stack::empty().cons(1).cons(2).cons(3).update(1, 9);
+        let expect =
+            Stack::Node(3,
+                       box Stack::Node(9, box Stack::Node(1, box Stack::Nil)));
         assert!(actual == expect);
     }
 }
