@@ -69,6 +69,15 @@ impl<T: Clone + Debug> List<T> for Stack<T> {
     }
 }
 
+impl<T: Clone + Debug> Stack<T> {
+    fn suffixes(&self) -> Stack<Self> {
+        match self {
+            &Stack::Nil => Stack::empty(),
+            &Stack::Node(_, box ref tail) => tail.suffixes().cons(self.clone()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,6 +130,17 @@ mod tests {
         let expect =
             Stack::Node(3,
                        box Stack::Node(9, box Stack::Node(1, box Stack::Nil)));
+        assert!(actual == expect);
+    }
+
+    #[test]
+    fn test_suffixes() {
+        let actual = Stack::empty().cons(1).cons(2).cons(3).suffixes();
+        let expect = Stack::empty()
+            .cons(Stack::empty().cons(1))
+            .cons(Stack::empty().cons(1).cons(2))
+            .cons(Stack::empty().cons(1).cons(2).cons(3));
+
         assert!(actual == expect);
     }
 }
