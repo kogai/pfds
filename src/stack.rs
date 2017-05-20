@@ -64,7 +64,7 @@ impl<T: Clone + Debug> List<T> for Stack<T> {
                     0 => tail.cons(x),
                     index => tail.update(index - 1, x).cons(head.clone()),
                 }
-            },
+            }
         }
     }
 }
@@ -120,16 +120,14 @@ mod tests {
         let actual = Stack::empty().cons(2).cons(1).concat(Stack::empty().cons(4).cons(3));
         let expect =
             Stack::Node(1,
-                       box Stack::Node(2, box Stack::Node(3, box Stack::Node(4, box Stack::Nil))));
+                        box Stack::Node(2, box Stack::Node(3, box Stack::Node(4, box Stack::Nil))));
         assert!(actual == expect);
     }
 
     #[test]
     fn test_update() {
         let actual = Stack::empty().cons(1).cons(2).cons(3).update(1, 9);
-        let expect =
-            Stack::Node(3,
-                       box Stack::Node(9, box Stack::Node(1, box Stack::Nil)));
+        let expect = Stack::Node(3, box Stack::Node(9, box Stack::Node(1, box Stack::Nil)));
         assert!(actual == expect);
     }
 
