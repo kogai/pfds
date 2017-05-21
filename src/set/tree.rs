@@ -1,15 +1,5 @@
 use std::fmt::Debug;
-
-trait Tree<T: Ord + Clone + Debug> {
-    fn empty() -> Self;
-    fn member(&self, x: &T) -> bool;
-    fn insert(&self, x: T) -> Self;
-}
-
-trait Sequence {
-    fn to_successor_with(&self, skip: i32) -> Self;
-    fn to_predecessor_with(&self, skip: i32) -> Self;
-}
+use set::{Set, Sequence};
 
 #[derive(PartialEq, Debug, Clone)]
 enum UnBlancedTree<T: Ord + Clone + Debug + Sequence> {
@@ -82,7 +72,7 @@ impl<T: Ord + Clone + Debug + Sequence> UnBlancedTree<T> {
     }
 }
 
-impl<T: Ord + Clone + Debug + Sequence> Tree<T> for UnBlancedTree<T> {
+impl<T: Ord + Clone + Debug + Sequence> Set<T> for UnBlancedTree<T> {
     fn empty() -> Self {
         UnBlancedTree::Empty
     }
