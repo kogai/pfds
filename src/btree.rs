@@ -12,22 +12,33 @@ enum UnBlancedTree<T: Ord + Clone + Debug> {
     Node(Box<UnBlancedTree<T>>, T, Box<UnBlancedTree<T>>),
 }
 
+impl<T: Ord + Clone + Debug> UnBlancedTree<T> {
+    fn member_inner(&self, x: &T, parent: Option<&T>) -> bool {
+        match self {
+            &UnBlancedTree::Empty => {
+                match parent {
+                    Some(p) => x <= p,
+                    None => false,
+                }
+            },
+            &UnBlancedTree::Node(ref left, ref elm, ref right) => {
+                if x < elm {
+                    left.member_inner(x, parent)
+                } else {
+                    right.member_inner(x, Some(elm))
+                }
+            }
+        }
+    }
+}
+
 impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
     fn empty() -> Self {
         UnBlancedTree::Empty
     }
 
     fn member(&self, x: &T) -> bool {
-        match self {
-            &UnBlancedTree::Empty => false,
-            &UnBlancedTree::Node(ref left, ref elm, ref right) => {
-                match x {
-                    _ if x < elm => left.member(x),
-                    _ if x > elm => right.member(x),
-                    _ => true,
-                }
-            }
-        }
+        self.member_inner(x, None)
     }
 
     fn insert(&self, x: T) -> Self {
@@ -87,7 +98,9 @@ mod tests {
         assert!(!actual.member(&1));
         assert!(!actual.member(&17));
         assert!(actual.member(&3));
+        assert!(actual.member(&5));
         assert!(actual.member(&15));
+        assert!(actual.member(&20));
     }
 
     #[test]
