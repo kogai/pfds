@@ -6,13 +6,18 @@ trait Tree<T: Ord + Clone + Debug> {
     fn insert(&self, x: T) -> Self;
 }
 
+trait Sequence {
+    fn to_successor_with(&self, skip: i32) -> Self;
+    fn to_predecessor_with(&self, skip: i32) -> Self;
+}
+
 #[derive(PartialEq, Debug, Clone)]
-enum UnBlancedTree<T: Ord + Clone + Debug> {
+enum UnBlancedTree<T: Ord + Clone + Debug + Sequence> {
     Empty,
     Node(Box<UnBlancedTree<T>>, T, Box<UnBlancedTree<T>>),
 }
 
-impl<T: Ord + Clone + Debug> UnBlancedTree<T> {
+impl<T: Ord + Clone + Debug + Sequence> UnBlancedTree<T> {
     fn member_inner(&self, x: &T, parent: Option<&T>) -> bool {
         match self {
             &UnBlancedTree::Empty => {
@@ -64,9 +69,20 @@ impl<T: Ord + Clone + Debug> UnBlancedTree<T> {
             }
         }
     }
+
+    fn create(x: T, d: i32) -> Self {
+        match d {
+            1 => UnBlancedTree::empty().insert(x),
+            _ => {
+                UnBlancedTree::Node(box UnBlancedTree::create(x.to_predecessor_with(d - 1), d - 1),
+                                    x.clone(),
+                                    box UnBlancedTree::create(x.to_successor_with(d - 1), d - 1))
+            }
+        }
+    }
 }
 
-impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
+impl<T: Ord + Clone + Debug + Sequence> Tree<T> for UnBlancedTree<T> {
     fn empty() -> Self {
         UnBlancedTree::Empty
     }
@@ -83,6 +99,12 @@ impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl Sequence for i32 {
+        fn to_successor_with(&self, skip: i32) -> Self { self + skip }
+        fn to_predecessor_with(&self, skip: i32) -> Self { self - skip }
+    }
+
     #[test]
     fn test_empty() {
         let actual: UnBlancedTree<i32> = UnBlancedTree::empty();
@@ -184,6 +206,41 @@ mod tests {
                 box UnBlancedTree::Node(
                     box UnBlancedTree::Empty,
                     10,
+                    box UnBlancedTree::Empty,
+                ),
+            ),
+        );
+        assert!(actual == expect);
+    }
+
+    #[test]
+    fn test_create() {
+        let actual = UnBlancedTree::create(10, 3);
+        let expect = UnBlancedTree::Node(
+            box UnBlancedTree::Node(
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    7,
+                    box UnBlancedTree::Empty,
+                ),
+                8,
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    9,
+                    box UnBlancedTree::Empty,
+                ),
+            ),
+            10,
+            box UnBlancedTree::Node(
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    11,
+                    box UnBlancedTree::Empty,
+                ),
+                12,
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    13,
                     box UnBlancedTree::Empty,
                 ),
             ),
