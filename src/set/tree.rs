@@ -91,8 +91,12 @@ mod tests {
     use super::*;
 
     impl Sequence for i32 {
-        fn to_successor_with(&self, skip: i32) -> Self { self + skip }
-        fn to_predecessor_with(&self, skip: i32) -> Self { self - skip }
+        fn to_successor_with(&self, skip: i32) -> Self {
+            self + skip
+        }
+        fn to_predecessor_with(&self, skip: i32) -> Self {
+            self - skip
+        }
     }
 
     #[test]
