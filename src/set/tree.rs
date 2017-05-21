@@ -139,7 +139,12 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let actual = UnBlancedTree::empty().insert(10).insert(5).insert(3).insert(15).insert(20);
+        let actual = UnBlancedTree::empty()
+            .insert(10)
+            .insert(5)
+            .insert(3)
+            .insert(15)
+            .insert(20);
         let expect = UnBlancedTree::Node(
           box UnBlancedTree::Node(
             box UnBlancedTree::Node(
@@ -242,3 +247,4 @@ mod tests {
         assert!(actual == expect);
     }
 }
+
