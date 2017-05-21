@@ -53,6 +53,17 @@ impl<T: Ord + Clone + Debug> UnBlancedTree<T> {
             }
         }
     }
+
+    fn complete(x: T, d: i32) -> Self {
+        match d {
+            1 => UnBlancedTree::empty().insert(x),
+            _ => {
+                UnBlancedTree::Node(box UnBlancedTree::complete(x.clone(), d - 1),
+                                    x.clone(),
+                                    box UnBlancedTree::complete(x.clone(), d - 1))
+            }
+        }
+    }
 }
 
 impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
@@ -72,7 +83,6 @@ impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn test_empty() {
         let actual: UnBlancedTree<i32> = UnBlancedTree::empty();
@@ -144,5 +154,40 @@ mod tests {
         let actual = UnBlancedTree::empty().insert(10);
         assert!(&actual == &actual.insert(10));
         assert!(&actual != &actual.insert(11));
+    }
+
+    #[test]
+    fn test_complete() {
+        let actual = UnBlancedTree::complete(10, 3);
+        let expect = UnBlancedTree::Node(
+            box UnBlancedTree::Node(
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    10,
+                    box UnBlancedTree::Empty,
+                ),
+                10,
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    10,
+                    box UnBlancedTree::Empty,
+                ),
+            ),
+            10,
+            box UnBlancedTree::Node(
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    10,
+                    box UnBlancedTree::Empty,
+                ),
+                10,
+                box UnBlancedTree::Node(
+                    box UnBlancedTree::Empty,
+                    10,
+                    box UnBlancedTree::Empty,
+                ),
+            ),
+        );
+        assert!(actual == expect);
     }
 }
