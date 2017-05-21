@@ -20,12 +20,35 @@ impl<T: Ord + Clone + Debug> UnBlancedTree<T> {
                     Some(p) => x <= p,
                     None => false,
                 }
-            },
+            }
             &UnBlancedTree::Node(ref left, ref elm, ref right) => {
                 if x < elm {
                     left.member_inner(x, parent)
                 } else {
                     right.member_inner(x, Some(elm))
+                }
+            }
+        }
+    }
+
+    fn insert_inner(&self, x: T, cache: Option<T>) -> Self {
+        match self {
+            &UnBlancedTree::Empty => {
+                if let Some(c) = cache {
+                    // 自動導出されたclone関数は参照をコピーする https://doc.rust-lang.org/src/core/clone.rs.html#134
+                    if x <= c {
+                        return self.clone();
+                    }
+                }
+                UnBlancedTree::Node(box UnBlancedTree::empty(), x, box UnBlancedTree::empty())
+            }
+            &UnBlancedTree::Node(ref left, ref elm, ref right) => {
+                if x < *elm {
+                    UnBlancedTree::Node(box left.insert_inner(x, cache), elm.clone(), right.clone())
+                } else {
+                    UnBlancedTree::Node(left.clone(),
+                                        elm.clone(),
+                                        box right.insert_inner(x, Some(elm.clone())))
                 }
             }
         }
@@ -42,24 +65,7 @@ impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
     }
 
     fn insert(&self, x: T) -> Self {
-        match self {
-            &UnBlancedTree::Empty => {
-                UnBlancedTree::Node(box UnBlancedTree::empty(), x, box UnBlancedTree::empty())
-            }
-            &UnBlancedTree::Node(ref left, ref elm, ref right) => {
-                match x {
-                    _ if x < *elm => {
-                        UnBlancedTree::Node(box left.insert(x), elm.clone(), right.clone())
-                    }
-                    _ if x > *elm => {
-                        UnBlancedTree::Node(left.clone(), elm.clone(), box right.insert(x))
-                    }
-                    /// 自動導出されたclone関数は参照をコピーする
-                    /// https://doc.rust-lang.org/src/core/clone.rs.html#134
-                    _ => self.clone(),
-                }
-            }
-        }
+        self.insert_inner(x, None)
     }
 }
 
@@ -134,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_ptr_equality() {
+    fn test_insert_ref_equality() {
         let actual = UnBlancedTree::empty().insert(10);
         assert!(&actual == &actual.insert(10));
         assert!(&actual != &actual.insert(11));
