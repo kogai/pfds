@@ -54,6 +54,8 @@ impl<T: Ord + Clone + Debug> Tree<T> for UnBlancedTree<T> {
                     _ if x > *elm => {
                         UnBlancedTree::Node(left.clone(), elm.clone(), box right.insert(x))
                     }
+                    /// 自動導出されたclone関数は参照をコピーする
+                    /// https://doc.rust-lang.org/src/core/clone.rs.html#134
                     _ => self.clone(),
                 }
             }
@@ -129,5 +131,12 @@ mod tests {
         );
 
         assert!(actual == expect);
+    }
+
+    #[test]
+    fn test_insert_ptr_equality() {
+        let actual = UnBlancedTree::empty().insert(10);
+        assert!(&actual == &actual.insert(10));
+        assert!(&actual != &actual.insert(11));
     }
 }
