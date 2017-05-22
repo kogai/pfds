@@ -3,3 +3,4 @@
 
 mod list;
 mod set;
+mod heap;
