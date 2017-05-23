@@ -11,15 +11,15 @@ trait Heap<T: Clone + Debug> {
 
 #[derive(Debug, PartialEq, Clone)]
 enum LeftistHeap<T: Clone + Ord + Debug> {
-    Nil,
-    Element(i32, T, Box<LeftistHeap<T>>, Box<LeftistHeap<T>>),
+    Leaf,
+    Node(i32, T, Box<LeftistHeap<T>>, Box<LeftistHeap<T>>),
 }
 
 impl<T: Clone + Ord + Debug> LeftistHeap<T> {
     fn rank(&self) -> i32 {
         match self {
-            &LeftistHeap::Element(rank, _, _, _) => rank,
-            &LeftistHeap::Nil => 0,
+            &LeftistHeap::Node(rank, _, _, _) => rank,
+            &LeftistHeap::Leaf => 0,
         }
     }
 
@@ -32,37 +32,38 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
         let other_rank = other.rank();
 
         if self_rank < other_rank {
-            Element(self_rank + 1, x, box other.clone(), box self.clone())
+            Node(self_rank + 1, x, box other.clone(), box self.clone())
         } else {
-            Element(other_rank + 1, x, box self.clone(), box other.clone())
+            Node(other_rank + 1, x, box self.clone(), box other.clone())
         }
     }
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
     fn empty() -> Self {
-        LeftistHeap::Nil
+        LeftistHeap::Leaf
     }
 
     fn is_empty(&self) -> bool {
         match self {
-            &LeftistHeap::Nil => true,
+            &LeftistHeap::Leaf => true,
             _ => false,
         }
     }
 
     fn insert(&self, x: T) -> Self {
-        unimplemented!();
+        use self::LeftistHeap::*;
+        self.merge(&Node(1, x, box Leaf, box Leaf))
     }
 
     fn merge(&self, other: &Self) -> Self {
         use self::LeftistHeap::*;
         match (self, other) {
-            (&Nil, &Element(_, _, _, _)) => other.clone(),
-            (&Element(_, _, _, _), &Nil) |
-            (&Nil, &Nil) => self.clone(),
-            (&Element(_, ref s_element, ref s_left, ref s_right),
-             &Element(_, ref o_element, ref o_left, ref o_right)) => {
+            (&Leaf, &Node(_, _, _, _)) => other.clone(),
+            (&Node(_, _, _, _), &Leaf) |
+            (&Leaf, &Leaf) => self.clone(),
+            (&Node(_, ref s_element, ref s_left, ref s_right),
+             &Node(_, ref o_element, ref o_left, ref o_right)) => {
                 if s_element <= o_element {
                     s_left.make_tree(&s_right.merge(other), s_element.clone())
                 } else {
@@ -84,14 +85,25 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
 mod tests {
     use super::*;
     fn create_node<T: Clone + Ord + Debug>(x: T) -> LeftistHeap<T> {
-        LeftistHeap::Element(1, x, box LeftistHeap::empty(), box LeftistHeap::empty())
+        LeftistHeap::Node(1, x, box LeftistHeap::empty(), box LeftistHeap::empty())
+    }
+
+    #[test]
+    fn test_insert() {
+        use self::LeftistHeap::*;
+        let actual = create_node(10).insert(20).insert(30).insert(40);
+        let expect = Node(2,
+                          10,
+                          box Node(1, 20, box Leaf, box Leaf),
+                          box Node(1, 30, box Node(1, 40, box Leaf, box Leaf), box Leaf));
+        assert!(actual == expect);
     }
 
     #[test]
     fn test_merge() {
         use self::LeftistHeap::*;
         let actual = create_node(10).merge(&create_node(20));
-        let expect = Element(1, 10, box create_node(20), box Nil);
+        let expect = Node(1, 10, box create_node(20), box Leaf);
         assert!(actual == expect);
     }
 
@@ -101,7 +113,7 @@ mod tests {
         let actual = create_node(10)
             .merge(&create_node(20))
             .merge(&create_node(30));
-        let expect = Element(2, 10, box create_node(20), box create_node(30));
+        let expect = Node(2, 10, box create_node(20), box create_node(30));
         assert!(actual == expect);
     }
 
@@ -109,7 +121,7 @@ mod tests {
     fn test_make_tree() {
         use self::LeftistHeap::*;
         let actual = create_node(10).make_tree(&create_node(20), 5);
-        assert!(actual == Element(2, 5, box create_node(10), box create_node(20)));
+        assert!(actual == Node(2, 5, box create_node(10), box create_node(20)));
     }
 }
 

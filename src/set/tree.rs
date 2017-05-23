@@ -3,14 +3,14 @@ use set::{Set, Sequence};
 
 #[derive(PartialEq, Debug, Clone)]
 enum UnBlancedTree<T: Ord + Clone + Debug + Sequence> {
-    Empty,
+    Leaf,
     Node(Box<UnBlancedTree<T>>, T, Box<UnBlancedTree<T>>),
 }
 
 impl<T: Ord + Clone + Debug + Sequence> UnBlancedTree<T> {
     fn member_inner(&self, x: &T, parent: Option<&T>) -> bool {
         match self {
-            &UnBlancedTree::Empty => {
+            &UnBlancedTree::Leaf => {
                 match parent {
                     Some(p) => x <= p,
                     None => false,
@@ -28,7 +28,7 @@ impl<T: Ord + Clone + Debug + Sequence> UnBlancedTree<T> {
 
     fn insert_inner(&self, x: T, cache: Option<T>) -> Self {
         match self {
-            &UnBlancedTree::Empty => {
+            &UnBlancedTree::Leaf => {
                 if let Some(c) = cache {
                     // 自動導出されたclone関数は参照をコピーする https://doc.rust-lang.org/src/core/clone.rs.html#134
                     if x <= c {
@@ -74,7 +74,7 @@ impl<T: Ord + Clone + Debug + Sequence> UnBlancedTree<T> {
 
 impl<T: Ord + Clone + Debug + Sequence> Set<T> for UnBlancedTree<T> {
     fn empty() -> Self {
-        UnBlancedTree::Empty
+        UnBlancedTree::Leaf
     }
 
     fn member(&self, x: &T) -> bool {
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn test_empty() {
         let actual: UnBlancedTree<i32> = UnBlancedTree::empty();
-        assert!(actual == UnBlancedTree::Empty);
+        assert!(actual == UnBlancedTree::Leaf);
     }
 
     #[test]
@@ -110,21 +110,21 @@ mod tests {
         let actual = UnBlancedTree::Node(
           box UnBlancedTree::Node(
             box UnBlancedTree::Node(
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
               3,
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
             ),
             5,
-            box UnBlancedTree::Empty,
+            box UnBlancedTree::Leaf,
           ),
           10,
           box UnBlancedTree::Node(
-            box UnBlancedTree::Empty,
+            box UnBlancedTree::Leaf,
             15,
             box UnBlancedTree::Node(
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
               20,
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
             ),
           ),
         );
@@ -148,21 +148,21 @@ mod tests {
         let expect = UnBlancedTree::Node(
           box UnBlancedTree::Node(
             box UnBlancedTree::Node(
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
               3,
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
             ),
             5,
-            box UnBlancedTree::Empty,
+            box UnBlancedTree::Leaf,
           ),
           10,
           box UnBlancedTree::Node(
-            box UnBlancedTree::Empty,
+            box UnBlancedTree::Leaf,
             15,
             box UnBlancedTree::Node(
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
               20,
-              box UnBlancedTree::Empty,
+              box UnBlancedTree::Leaf,
             ),
           ),
         );
@@ -183,29 +183,29 @@ mod tests {
         let expect = UnBlancedTree::Node(
             box UnBlancedTree::Node(
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     10,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
                 10,
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     10,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
             ),
             10,
             box UnBlancedTree::Node(
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     10,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
                 10,
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     10,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
             ),
         );
@@ -218,29 +218,29 @@ mod tests {
         let expect = UnBlancedTree::Node(
             box UnBlancedTree::Node(
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     7,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
                 8,
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     9,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
             ),
             10,
             box UnBlancedTree::Node(
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     11,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
                 12,
                 box UnBlancedTree::Node(
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                     13,
-                    box UnBlancedTree::Empty,
+                    box UnBlancedTree::Leaf,
                 ),
             ),
         );
