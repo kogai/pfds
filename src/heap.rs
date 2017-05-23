@@ -23,7 +23,7 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
         }
     }
 
-    fn make_tree(&self, other: &Self, x: T) -> Self {
+    fn make_tree(&self, other: &Self, root: T) -> Self {
         use self::LeftistHeap::*;
         // x < self.element && x < other.element が前提
         // ランクの低い方の部分木を元に根のランクを算出し、右ノードに生やす
@@ -32,9 +32,9 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
         let other_rank = other.rank();
 
         if self_rank < other_rank {
-            Node(self_rank + 1, x, box other.clone(), box self.clone())
+            Node(self_rank + 1, root, box other.clone(), box self.clone())
         } else {
-            Node(other_rank + 1, x, box self.clone(), box other.clone())
+            Node(other_rank + 1, root, box self.clone(), box other.clone())
         }
     }
 }
@@ -53,7 +53,16 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
 
     fn insert(&self, x: T) -> Self {
         use self::LeftistHeap::*;
-        self.merge(&Node(1, x, box Leaf, box Leaf))
+        match self {
+            &Node(_, ref root, ref left, ref right) => {
+                if &x <= root {
+                    right.make_tree(&left.insert(root.clone()), x.clone())
+                } else {
+                    left.make_tree(&right.insert(x), root.clone())
+                }
+            }
+            &Leaf => Node(1, x, box Leaf, box Leaf),
+        }
     }
 
     fn merge(&self, other: &Self) -> Self {
@@ -96,6 +105,20 @@ mod tests {
                           10,
                           box Node(1, 20, box Leaf, box Leaf),
                           box Node(1, 30, box Node(1, 40, box Leaf, box Leaf), box Leaf));
+        assert!(actual == expect);
+    }
+
+    #[test]
+    fn test_insert_large() {
+        use self::LeftistHeap::*;
+        let actual = create_node(40).insert(30).insert(20).insert(10);
+        let expect = Node(1,
+                          10,
+                          box Node(1,
+                                   20,
+                                   box Node(1, 30, box Node(1, 40, box Leaf, box Leaf), box Leaf),
+                                   box Leaf),
+                          box Leaf);
         assert!(actual == expect);
     }
 
