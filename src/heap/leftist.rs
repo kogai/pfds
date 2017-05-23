@@ -1,13 +1,5 @@
 use std::fmt::Debug;
-
-trait Heap<T: Clone + Debug> {
-    fn empty() -> Self;
-    fn is_empty(&self) -> bool;
-    fn insert(&self, x: T) -> Self;
-    fn merge(&self, other: &Self) -> Self;
-    fn find_min(&self) -> Option<T>;
-    fn delete_min(&self) -> Self;
-}
+use heap::Heap;
 
 #[derive(Debug, PartialEq, Clone)]
 enum LeftistHeap<T: Clone + Ord + Debug> {
@@ -107,11 +99,19 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
     }
 
     fn find_min(&self) -> Option<T> {
-        unimplemented!();
+        use self::LeftistHeap::*;
+        match self {
+            &Leaf => None,
+            &Node(_, ref x, _, _) => Some(x.clone()),
+        }
     }
 
     fn delete_min(&self) -> Self {
-        unimplemented!();
+        use self::LeftistHeap::*;
+        match self {
+            &Leaf => self.clone(),
+            &Node(_, _, ref left, ref right) => left.merge(right),
+        }
     }
 }
 
@@ -119,6 +119,20 @@ mod tests {
     use super::*;
     fn create_node<T: Clone + Ord + Debug>(x: T) -> LeftistHeap<T> {
         LeftistHeap::Node(1, x, box LeftistHeap::empty(), box LeftistHeap::empty())
+    }
+
+    #[test]
+    fn test_find_min() {
+        let actual = create_node(3).insert(2).insert(1);
+        assert!(actual.find_min() == Some(1));
+    }
+
+    #[test]
+    fn test_delete_min() {
+        use self::LeftistHeap::*;
+        let actual = create_node(3).insert(2).insert(1);
+        let expect = Node(1, 2, box Node(1, 3, box Leaf, box Leaf), box Leaf);
+        assert!(actual.delete_min() == expect);
     }
 
     #[test]
