@@ -37,6 +37,30 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
             Node(other_rank + 1, root, box self.clone(), box other.clone())
         }
     }
+
+    fn from_list_impl(xs: Vec<LeftistHeap<T>>) -> Self {
+        use self::LeftistHeap::*;
+
+        match (&xs).len() {
+            0 => Leaf,
+            1 => xs.first().unwrap().clone(),
+            _ => {
+                LeftistHeap::from_list_impl(xs.chunks(2)
+                                                .map(|x| {
+                                                         x.iter().fold(Leaf, |acc, n| acc.merge(n))
+                                                     })
+                                                .collect::<Vec<_>>())
+            }
+        }
+    }
+
+    fn from_list(xs: Vec<T>) -> Self {
+        use self::LeftistHeap::*;
+
+        LeftistHeap::from_list_impl(xs.into_iter()
+                                        .map(|x| Node(1, x, box Leaf, box Leaf))
+                                        .collect::<Vec<_>>())
+    }
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
@@ -95,6 +119,17 @@ mod tests {
     use super::*;
     fn create_node<T: Clone + Ord + Debug>(x: T) -> LeftistHeap<T> {
         LeftistHeap::Node(1, x, box LeftistHeap::empty(), box LeftistHeap::empty())
+    }
+
+    #[test]
+    fn test_from_list() {
+        use self::LeftistHeap::*;
+        let actual = LeftistHeap::from_list(vec![1, 3, 2, 4]);
+        let expect = Node(2,
+                          1,
+                          box Node(1, 3, box Leaf, box Leaf),
+                          box Node(1, 2, box Node(1, 4, box Leaf, box Leaf), box Leaf));
+        assert!(actual == expect);
     }
 
     #[test]
