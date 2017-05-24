@@ -1,8 +1,9 @@
 use std::fmt::Debug;
 
 mod leftist;
+mod binominal;
 
-trait Heap<T: Clone + Debug> {
+trait Heap<T: Clone + Debug + Ord> {
     fn empty() -> Self;
     fn is_empty(&self) -> bool;
     fn insert(&self, x: T) -> Self;
