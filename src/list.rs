@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-trait List<T: Clone>: Sized {
+pub trait List<T: Clone>: Sized {
     fn empty() -> Self;
     fn is_empty(&self) -> bool;
     fn cons(&self, x: T) -> Self;
@@ -11,7 +11,7 @@ trait List<T: Clone>: Sized {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum Stack<T: Clone + Debug> {
+pub enum Stack<T: Clone + Debug> {
     Nil,
     Node(T, Box<Stack<T>>),
 }
