@@ -117,8 +117,23 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
 
 mod tests {
     use super::*;
+
     fn create_node<T: Clone + Ord + Debug>(x: T) -> LeftistHeap<T> {
         LeftistHeap::Node(1, x, box LeftistHeap::empty(), box LeftistHeap::empty())
+    }
+
+    fn assert_leftist<T: Clone + Ord + Debug>(left: LeftistHeap<T>, right: LeftistHeap<T>) {
+        use self::LeftistHeap::*;
+        match (left, right) {
+            (_, Leaf) => (),
+            (Leaf, Node(_, _, _, _)) => assert!(false),
+            (Node(l_rank, _, box l_left, box l_right),
+             Node(r_rank, _, box r_left, box r_right)) => {
+                assert!(l_rank >= r_rank);
+                assert_leftist(l_left, l_right);
+                assert_leftist(r_left, r_right);
+            }
+        }
     }
 
     #[test]
@@ -130,53 +145,46 @@ mod tests {
     #[test]
     fn test_delete_min() {
         use self::LeftistHeap::*;
-        let actual = create_node(3).insert(2).insert(1);
-        let expect = Node(1, 2, box Node(1, 3, box Leaf, box Leaf), box Leaf);
-        assert!(actual.delete_min() == expect);
+        let actual = LeftistHeap::from_list(vec![1, 3, 2, 4, 10, 2, 4]);
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 
     #[test]
     fn test_from_list() {
         use self::LeftistHeap::*;
         let actual = LeftistHeap::from_list(vec![1, 3, 2, 4]);
-        let expect = Node(2,
-                          1,
-                          box Node(1, 3, box Leaf, box Leaf),
-                          box Node(1, 2, box Node(1, 4, box Leaf, box Leaf), box Leaf));
-        assert!(actual == expect);
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 
     #[test]
     fn test_insert() {
         use self::LeftistHeap::*;
         let actual = create_node(10).insert(20).insert(30).insert(40);
-        let expect = Node(2,
-                          10,
-                          box Node(1, 20, box Leaf, box Leaf),
-                          box Node(1, 30, box Node(1, 40, box Leaf, box Leaf), box Leaf));
-        assert!(actual == expect);
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 
     #[test]
     fn test_insert_large() {
         use self::LeftistHeap::*;
         let actual = create_node(40).insert(30).insert(20).insert(10);
-        let expect = Node(1,
-                          10,
-                          box Node(1,
-                                   20,
-                                   box Node(1, 30, box Node(1, 40, box Leaf, box Leaf), box Leaf),
-                                   box Leaf),
-                          box Leaf);
-        assert!(actual == expect);
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 
     #[test]
     fn test_merge() {
         use self::LeftistHeap::*;
         let actual = create_node(10).merge(&create_node(20));
-        let expect = Node(1, 10, box create_node(20), box Leaf);
-        assert!(actual == expect);
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 
     #[test]
@@ -185,15 +193,18 @@ mod tests {
         let actual = create_node(10)
             .merge(&create_node(20))
             .merge(&create_node(30));
-        let expect = Node(2, 10, box create_node(20), box create_node(30));
-        assert!(actual == expect);
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 
     #[test]
     fn test_make_tree() {
         use self::LeftistHeap::*;
         let actual = create_node(10).make_tree(&create_node(20), 5);
-        assert!(actual == Node(2, 5, box create_node(10), box create_node(20)));
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
+        }
     }
 }
 
