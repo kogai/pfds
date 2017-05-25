@@ -8,28 +8,6 @@ enum LeftistHeap<T: Clone + Ord + Debug> {
 }
 
 impl<T: Clone + Ord + Debug> LeftistHeap<T> {
-    fn rank(&self) -> i32 {
-        match self {
-            &LeftistHeap::Node(rank, _, _, _) => rank,
-            &LeftistHeap::Leaf => 0,
-        }
-    }
-
-    fn make_tree(&self, other: &Self, root: T) -> Self {
-        use self::LeftistHeap::*;
-        // x < self.element && x < other.element が前提
-        // ランクの低い方の部分木を元に根のランクを算出し、右ノードに生やす
-
-        let self_rank = self.rank();
-        let other_rank = other.rank();
-
-        if self_rank < other_rank {
-            Node(self_rank + 1, root, box other.clone(), box self.clone())
-        } else {
-            Node(other_rank + 1, root, box self.clone(), box other.clone())
-        }
-    }
-
     fn from_list_impl(xs: Vec<LeftistHeap<T>>) -> Self {
         use self::LeftistHeap::*;
 
@@ -52,6 +30,67 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
         LeftistHeap::from_list_impl(xs.into_iter()
                                         .map(|x| Node(1, x, box Leaf, box Leaf))
                                         .collect::<Vec<_>>())
+    }
+
+    fn rank(&self) -> i32 {
+        match self {
+            &LeftistHeap::Node(rank, _, _, _) => rank,
+            &LeftistHeap::Leaf => 0,
+        }
+    }
+
+    fn make_tree(&self, other: &Self, root: T) -> Self {
+        use self::LeftistHeap::*;
+        let self_rank = self.rank();
+        let other_rank = other.rank();
+        let rank = if self_rank >= other_rank {
+            self_rank
+        } else {
+            other_rank
+        } + 1;
+
+        // 高ランクの木を左に生やす
+        if self_rank >= other_rank {
+            Node(rank, root, box self.clone(), box other.clone())
+        } else {
+            Node(rank, root, box other.clone(), box self.clone())
+        }
+    }
+
+    fn make_tree_with_wb(&self, other: &Self, root: T) -> Self {
+        use self::LeftistHeap::*;
+        let self_rank = self.rank();
+        let other_rank = other.rank();
+        let rank = self_rank + other_rank + 1;
+
+        // 高サイズ(rank)木を左に生やす
+        if self_rank >= other_rank {
+            Node(rank, root, box self.clone(), box other.clone())
+        } else {
+            Node(rank, root, box other.clone(), box self.clone())
+        }
+    }
+
+    fn insert_with_wb(&self, x: T) -> Self {
+        use self::LeftistHeap::*;
+        self.merge_with_wb(&Node(1, x, box Leaf, box Leaf))
+    }
+
+    fn merge_with_wb(&self, other: &Self) -> Self {
+        use self::LeftistHeap::*;
+        match (self, other) {
+            (&Leaf, &Node(_, _, _, _)) => other.clone(),
+            (&Node(_, _, _, _), &Leaf) |
+            (&Leaf, &Leaf) => self.clone(),
+            (&Node(_, ref s_element, ref s_left, ref s_right),
+             &Node(_, ref o_element, ref o_left, ref o_right)) => {
+                if s_element <= o_element {
+                    s_left.make_tree_with_wb(&s_right.merge_with_wb(other), s_element.clone())
+                } else {
+                    o_left.make_tree_with_wb(&o_right.merge_with_wb(self), o_element.clone())
+                }
+            }
+        }
     }
 }
 
@@ -125,14 +164,31 @@ mod tests {
     fn assert_leftist<T: Clone + Ord + Debug>(left: LeftistHeap<T>, right: LeftistHeap<T>) {
         use self::LeftistHeap::*;
         match (left, right) {
-            (_, Leaf) => (),
+            (Node(_, _, box left, box right), Leaf) => assert_leftist(left, right),
             (Leaf, Node(_, _, _, _)) => assert!(false),
+            (Leaf, Leaf) => (),
             (Node(l_rank, _, box l_left, box l_right),
              Node(r_rank, _, box r_left, box r_right)) => {
                 assert!(l_rank >= r_rank);
                 assert_leftist(l_left, l_right);
                 assert_leftist(r_left, r_right);
             }
+        }
+    }
+
+    #[test]
+    fn test_weight_biased_leftist() {
+        use self::LeftistHeap::*;
+        let actual = LeftistHeap::empty()
+            .insert_with_wb(1)
+            .insert_with_wb(2)
+            .insert_with_wb(3)
+            .insert_with_wb(4)
+            .insert_with_wb(5)
+            .insert_with_wb(6);
+
+        if let Node(_, _, box left, box right) = actual {
+            assert_leftist(left, right);
         }
     }
 
