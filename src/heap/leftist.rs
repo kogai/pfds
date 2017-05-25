@@ -82,13 +82,23 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
             (&Leaf, &Node(_, _, _, _)) => other.clone(),
             (&Node(_, _, _, _), &Leaf) |
             (&Leaf, &Leaf) => self.clone(),
-            (&Node(_, ref s_element, ref s_left, ref s_right),
-             &Node(_, ref o_element, ref o_left, ref o_right)) => {
-                if s_element <= o_element {
-                    s_left.make_tree_with_wb(&s_right.merge_with_wb(other), s_element.clone())
+            (&Node(ref s_rank, ref s_element, ref s_left, ref s_right),
+             &Node(ref o_rank, ref o_element, ref o_left, ref o_right)) => {
+                let rank = s_rank + o_rank + 1;
+                let (element, left, right) = if s_element <= o_element {
+                    if s_rank > o_rank {
+                        (s_element, s_left.merge(s_right), other.clone())
+                    } else {
+                        (s_element, other.clone(), s_left.merge(s_right))
+                    }
                 } else {
-                    o_left.make_tree_with_wb(&o_right.merge_with_wb(self), o_element.clone())
-                }
+                    if s_rank > o_rank {
+                        (o_element, self.clone(), o_left.merge(o_right))
+                    } else {
+                        (o_element, o_left.merge(o_right), self.clone())
+                    }
+                };
+                Node(rank, element.clone(), box left, box right)
             }
         }
     }
@@ -176,19 +186,34 @@ mod tests {
         }
     }
 
+    fn assert_ordered<T: Clone + Ord + Debug>(x: &LeftistHeap<T>, min: &T) -> bool {
+        use self::LeftistHeap::*;
+        match x {
+            &Leaf => true,
+            &Node(_, ref element, box ref left, box ref right) => {
+                (min <= element) && assert_ordered(left, element) && assert_ordered(right, element)
+            }
+        }
+    }
+
     #[test]
     fn test_weight_biased_leftist() {
         use self::LeftistHeap::*;
         let actual = LeftistHeap::empty()
-            .insert_with_wb(1)
-            .insert_with_wb(2)
-            .insert_with_wb(3)
-            .insert_with_wb(4)
             .insert_with_wb(5)
-            .insert_with_wb(6);
+            .insert_with_wb(6)
+            .insert_with_wb(4)
+            .insert_with_wb(1)
+            .insert_with_wb(3)
+            .insert_with_wb(3)
+            .insert_with_wb(2);
+
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
 
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -202,8 +227,11 @@ mod tests {
     fn test_delete_min() {
         use self::LeftistHeap::*;
         let actual = LeftistHeap::from_list(vec![1, 3, 2, 4, 10, 2, 4]);
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -211,8 +239,11 @@ mod tests {
     fn test_from_list() {
         use self::LeftistHeap::*;
         let actual = LeftistHeap::from_list(vec![1, 3, 2, 4]);
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -220,8 +251,11 @@ mod tests {
     fn test_insert() {
         use self::LeftistHeap::*;
         let actual = create_node(10).insert(20).insert(30).insert(40);
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -229,8 +263,11 @@ mod tests {
     fn test_insert_large() {
         use self::LeftistHeap::*;
         let actual = create_node(40).insert(30).insert(20).insert(10);
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -238,8 +275,11 @@ mod tests {
     fn test_merge() {
         use self::LeftistHeap::*;
         let actual = create_node(10).merge(&create_node(20));
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -249,8 +289,11 @@ mod tests {
         let actual = create_node(10)
             .merge(&create_node(20))
             .merge(&create_node(30));
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 
@@ -258,8 +301,11 @@ mod tests {
     fn test_make_tree() {
         use self::LeftistHeap::*;
         let actual = create_node(10).make_tree(&create_node(20), 5);
+        assert!(assert_ordered(&actual, &actual.find_min().unwrap()));
         if let Node(_, _, box left, box right) = actual {
             assert_leftist(left, right);
+        } else {
+            unreachable!();
         }
     }
 }
