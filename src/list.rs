@@ -70,6 +70,10 @@ impl<T: Clone + Debug> List<T> for Stack<T> {
 }
 
 impl<T: Clone + Debug> Stack<T> {
+    pub fn new(x: T) -> Self {
+        Stack::Node(x, box Stack::Nil)
+    }
+
     fn suffixes(&self) -> Stack<Self> {
         match self {
             &Stack::Nil => Stack::empty(),

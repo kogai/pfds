@@ -91,10 +91,6 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
-    fn empty() -> Self {
-        LeftistHeap::Leaf
-    }
-
     fn is_empty(&self) -> bool {
         match self {
             &LeftistHeap::Leaf => true,
@@ -154,7 +150,7 @@ mod tests {
     use super::*;
 
     fn create_node<T: Clone + Ord + Debug>(x: T) -> LeftistHeap<T> {
-        LeftistHeap::Node(1, x, box LeftistHeap::empty(), box LeftistHeap::empty())
+        LeftistHeap::Node(1, x, box LeftistHeap::Leaf, box LeftistHeap::Leaf)
     }
 
     fn is_leftist_inner<T: Clone + Ord + Debug>(left: &LeftistHeap<T>,
@@ -194,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_weight_biased_leftist() {
-        let actual = LeftistHeap::empty()
+        let actual = LeftistHeap::Leaf
             .insert_with_wb(5)
             .insert_with_wb(6)
             .insert_with_wb(4)
