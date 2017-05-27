@@ -102,11 +102,33 @@ impl<T: Clone + Debug> Stack<T> {
     pub fn all<F>(&self, f: &F) -> bool where F: Fn(&T) -> bool {
         self.foldl(true, &|acc, x| acc && f(x))
     }
+
+    pub fn reverse(&self) -> Self {
+        use self::Stack::*;
+        match self {
+            &Nil => self.clone(),
+            &Node(ref head, box ref tail) => {
+                if tail.is_empty() {
+                    Stack::new(head.clone())
+                } else {
+                    tail.reverse().concat(Stack::new(head.clone()))
+                }
+            }, 
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_reverse() {
+        use self::Stack::*;
+        let actual = Stack::empty().cons(1).cons(2).cons(3).reverse();
+        let expect = Node(1, box Node(2, box Node(3, box Nil)));
+        assert!(actual.head() == expect.head());
+    }
 
     #[test]
     fn test_map() {

@@ -4,7 +4,7 @@ mod leftist;
 mod binominal;
 
 trait Heap<T: Clone + Debug + Ord> {
-    fn is_empty(&self) -> bool;
+    fn is_empty_heap(&self) -> bool;
     fn insert(&self, x: T) -> Self;
     fn merge(&self, other: &Self) -> Self;
     fn find_min(&self) -> Option<T>;

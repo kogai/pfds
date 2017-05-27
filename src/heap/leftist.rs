@@ -91,7 +91,7 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
-    fn is_empty(&self) -> bool {
+    fn is_empty_heap(&self) -> bool {
         match self {
             &LeftistHeap::Leaf => true,
             _ => false,
