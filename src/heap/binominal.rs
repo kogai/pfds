@@ -74,6 +74,19 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
             }
         }
     }
+
+    fn find_min_impl(&self, min: &T) -> T {
+        match self {
+            &Stack::Nil => min.clone(),
+            &Stack::Node(ref head, box ref tail) => {
+                if &head.element < min {
+                   tail.find_min_impl(&head.element) 
+                } else {
+                   tail.find_min_impl(min) 
+                }
+            } 
+        }
+    }
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
@@ -102,7 +115,7 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
     fn find_min(&self) -> Option<T> {
         match self {
             &Stack::Nil => None,
-            _ => Some(self.remove_min_tree().0.element),
+            &Stack::Node(ref head, box ref tail) => Some(tail.find_min_impl(&head.element)),
         }
     }
 
@@ -111,10 +124,6 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
             &Stack::Nil => self.clone(),
             _ => {
                 let (head, tail) = self.remove_min_tree();
-                // println!("{:?}", head.children);
-                // println!("tail -> {:?}", tail);
-                // println!("liat -> {:?}", tail.reverse());
-                // unimplemented!();
                 head.children.reverse().merge(&tail)
             }
         }
@@ -187,6 +196,7 @@ mod tests {
     fn test_find_min() {
         let actual = BinominalHeap::with_binominal_tree(5)
             .insert(2)
+            .insert(4)
             .insert(4)
             .insert(1)
             .insert(3)
