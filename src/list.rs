@@ -76,11 +76,52 @@ impl<T: Clone + Debug> Stack<T> {
             &Stack::Node(_, box ref tail) => tail.suffixes().cons(self.clone()),
         }
     }
+
+    pub fn map<R, F>(&self, f: &F) -> Stack<R> where R: Clone + Debug, F: Fn(&T) -> R {
+        use self::Stack::*;
+        match self {
+            &Nil => Nil,
+            &Node(ref head, ref tail) =>  tail.map(f).cons(f(head)),
+        }
+    }
+
+    pub fn foldl<R, F>(&self, r: R, f: &F) -> R where R: Clone + Debug, F: Fn(R, &T) -> R {
+        use self::Stack::*;
+        match self {
+            &Nil => r.clone(),
+            &Node(ref head, ref tail) => {
+                tail.foldl(f(r, head), f)
+            }, 
+        }
+    }
+
+    pub fn all<F>(&self, f: &F) -> bool where F: Fn(&T) -> bool {
+        self.foldl(true, &|acc, x| acc && f(x))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_map() {
+        let actual = Stack::empty().cons(1).cons(2).cons(3).map(&|x| x + 1);
+        let expect = Stack::Node(4, box Stack::Node(3, box Stack::Node(2, box Stack::Nil)));
+        assert!(actual == expect);
+    }
+
+    #[test]
+    fn test_foldl() {
+        let actual = Stack::empty().cons(1).cons(2).cons(3).foldl(0, &|acc, x| acc + x);
+        assert!(actual == 6);
+    }
+
+    #[test]
+    fn test_all() {
+        let actual = Stack::empty().cons(2).cons(4).cons(6).all(&|x| x % 2 == 0);
+        assert!(actual);
+    }
 
     #[test]
     fn test_is_empty() {
