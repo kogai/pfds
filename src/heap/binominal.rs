@@ -3,7 +3,7 @@ use heap::Heap;
 use list::{Stack, List};
 
 #[derive(Debug, PartialEq, Clone)]
-struct BinominalTree<T: Clone + Ord + Debug> {
+pub struct BinominalTree<T: Clone + Ord + Debug> {
     rank: i32,
     element: T,
     children: Box<Stack<BinominalTree<T>>>,
@@ -35,7 +35,7 @@ impl<T: Clone + Ord + Debug> BinominalTree<T> {
     }
 }
 
-type BinominalHeap<T: Clone + Ord + Debug> = Stack<(i32, BinominalTree<T>)>;
+pub type BinominalHeap<T: Clone + Ord + Debug> = Stack<(i32, BinominalTree<T>)>;
 
 impl<T: Clone + Ord + Debug> BinominalHeap<T> {
     fn from_list(xs: Stack<BinominalTree<T>>, rank: i32) -> Self {
@@ -112,6 +112,10 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
+    fn empty() -> Self {
+        Stack::Nil
+    }
+
     fn is_empty_heap(&self) -> bool {
         self.is_empty()
     }

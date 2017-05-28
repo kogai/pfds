@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use heap::Heap;
 
 #[derive(Debug, PartialEq, Clone)]
-enum LeftistHeap<T: Clone + Ord + Debug> {
+pub enum LeftistHeap<T: Clone + Ord + Debug> {
     Leaf,
     Node(i32, T, Box<LeftistHeap<T>>, Box<LeftistHeap<T>>),
 }
@@ -91,6 +91,10 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
 }
 
 impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
+    fn empty() -> Self {
+        LeftistHeap::Leaf
+    }
+
     fn is_empty_heap(&self) -> bool {
         match self {
             &LeftistHeap::Leaf => true,
