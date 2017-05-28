@@ -19,8 +19,6 @@ impl<T: Clone + Ord + Debug> BinominalTree<T> {
     }
 
     fn link(&self, that: &Self) -> Self {
-        assert!(self.rank == that.rank);
-
         if self.element <= that.element {
             BinominalTree {
                 rank: self.rank + 1,
@@ -37,38 +35,62 @@ impl<T: Clone + Ord + Debug> BinominalTree<T> {
     }
 }
 
-type BinominalHeap<T: Clone + Ord + Debug> = Stack<BinominalTree<T>>;
+type BinominalHeap<T: Clone + Ord + Debug> = Stack<(i32, BinominalTree<T>)>;
 
 impl<T: Clone + Ord + Debug> BinominalHeap<T> {
-    fn with_binominal_tree(x: T) -> Self {
-        Stack::new(BinominalTree::new(x))
+    fn from_list(xs: Stack<BinominalTree<T>>, rank: i32) -> Self {
+        let result = xs.foldl((rank - 1, Stack::Nil), &|(r, acc), tree| {
+            (r - 1, acc.cons((r, tree.clone())))
+        });
+        result.1
     }
 
-    fn insert_tree(&self, x: BinominalTree<T>) -> Self {
+    fn from_tree(x: BinominalTree<T>, rank: i32) -> Self {
+        Stack::new((rank, x))
+    }
+
+    fn from_element(x: T) -> Self {
+        BinominalHeap::from_tree(BinominalTree::new(x), 1)
+    }
+
+    fn rank(&self) -> i32 {
         match self {
-            &Stack::Nil => self.cons(x),
-            &Stack::Node(ref head, box ref tail) => {
-                if x.rank < head.rank {
-                    self.cons(x)
+            &Stack::Nil => 0,
+            &Stack::Node((rank, _), _) => rank,
+        }
+    }
+
+    fn insert_tree_impl(&self, x: BinominalTree<T>, rank_of_tree: i32) -> Self {
+        match self {
+            &Stack::Nil => {
+                self.cons((rank_of_tree + 1, x))
+            },
+            &Stack::Node((ref rank, ref head), box ref tail) => {
+                if rank_of_tree < *rank - 1 {
+                    self.cons((rank_of_tree + 1, x))
                 } else {
-                    tail.clone().insert_tree(x.link(head))
+                    tail.clone().insert_tree_impl(x.link(head), *rank)
                 }
             }
         }
     }
 
-    fn remove_min_tree(&self) -> (BinominalTree<T>, Self) {
+    fn insert_tree(&self, x: BinominalTree<T>) -> Self {
+        self.insert_tree_impl(x, 0)
+    }
+
+    fn remove_min_tree(&self) -> (BinominalTree<T>, Self, i32) {
         match self {
             &Stack::Nil => unreachable!(),
-            &Stack::Node(ref head, box ref tail) => {
+            &Stack::Node((ref rank, ref head), box ref tail) => {
                 if tail.is_empty() {
-                    (head.clone(), self.clone())
+                    (head.clone(), tail.clone(), *rank)
                 } else {
-                    let (o_head, o_tail) = tail.remove_min_tree();
+                    let (o_head, o_tail, o_rank) = tail.remove_min_tree();
                     if head.clone().element <= o_head.element {
-                        (head.clone(), tail.clone())
+                        (head.clone(), tail.clone(), *rank)
                     } else {
-                        (o_head.clone(), o_tail.cons(head.clone()))
+                        (o_head.clone(), o_tail.cons((*rank, head.clone())), o_rank)
                     }
                 }
             }
@@ -78,7 +100,7 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
     fn find_min_impl(&self, min: &T) -> T {
         match self {
             &Stack::Nil => min.clone(),
-            &Stack::Node(ref head, box ref tail) => {
+            &Stack::Node((_, ref head), box ref tail) => {
                 if &head.element < min {
                    tail.find_min_impl(&head.element) 
                 } else {
@@ -102,11 +124,13 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
         match (self.clone(), other.clone()) {
             (_, Stack::Nil) => self.clone(),
             (Stack::Nil, _) => other.clone(),
-            (Stack::Node(s, box s_tail), Stack::Node(o, box o_tail)) => {
-                match s.rank {
-                    _ if s.rank < o.rank => s_tail.merge(other).cons(s),
-                    _ if s.rank > o.rank => o_tail.merge(self).cons(o),
-                    _ => s_tail.merge(&o_tail).insert_tree(s.link(&o)),
+            (Stack::Node((ref s_rank, ref s), box ref s_tail), Stack::Node((ref o_rank, ref o), box ref o_tail)) => {
+                match s_rank {
+                    _ if s_rank < o_rank => s_tail.merge(other).cons((*s_rank, s.clone())),
+                    _ if s_rank > o_rank => o_tail.merge(self).cons((*o_rank, o.clone())),
+                    _ => {
+                        s_tail.merge(&o_tail).insert_tree_impl(s.link(&o), *s_rank)
+                    },
                 }
             }
         }
@@ -115,7 +139,7 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
     fn find_min(&self) -> Option<T> {
         match self {
             &Stack::Nil => None,
-            &Stack::Node(ref head, box ref tail) => Some(tail.find_min_impl(&head.element)),
+            &Stack::Node((_, ref head), box ref tail) => Some(tail.find_min_impl(&head.element)),
         }
     }
 
@@ -123,8 +147,9 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
         match self {
             &Stack::Nil => self.clone(),
             _ => {
-                let (head, tail) = self.remove_min_tree();
-                head.children.reverse().merge(&tail)
+                let (head, tail, rank) = self.remove_min_tree();
+                let children = *head.children;
+                BinominalHeap::from_list(children, rank).merge(&tail)
             }
         }
     }
@@ -141,7 +166,7 @@ mod tests {
     }
 
     fn is_ordered_heap<T: Clone + Ord + Debug>(heap: &BinominalHeap<T>, min: &T) -> bool {
-        heap.all(&|x| is_ordered_tree(x, min))
+        heap.all(&|&(_, ref x)| is_ordered_tree(x, min))
     }
 
     fn size_from_element<T: Clone + Ord + Debug>(x: &BinominalTree<T>) -> i32 {
@@ -151,13 +176,13 @@ mod tests {
         }
     }
 
-    // ランクrの二項木は2のr乗のノードを含む
-    fn size_from_rank(rank: i32) -> i32 {
-        (2 as i32).pow(rank as u32)
+    fn size_from_elements<T: Clone + Ord + Debug>(xs: &BinominalHeap<T>) -> i32 {
+        xs.foldl(0, &|acc, &(_, ref x)| acc + size_from_element(x))
     }
 
-    fn size_from_elements<T: Clone + Ord + Debug>(x: &BinominalHeap<T>) -> i32 {
-        x.foldl(0, &|acc, x| acc + size_from_element(x))
+    // ランクrの二項木は2のr乗のノードを含む
+    fn size_from_rank<T: Clone + Ord + Debug>(xs: &BinominalHeap<T>) -> i32 {
+        xs.foldl(0, &|acc, &(ref r, _)| acc + (2 as i32).pow((r - 1) as u32))
     }
 
     // サイズ6の二項ヒープ -> 110(二進表記) -> ランク1とランク2の二項木の集合になっていること
@@ -171,7 +196,7 @@ mod tests {
             .map(|(rank, _)| rank as i32)
             .fold((x.clone(), true), |(list, is_present_correct), rank| {
                 (list.tail(),
-                 is_present_correct && list.head().rank == rank &&
+                 is_present_correct && list.rank() - 1 == rank &&
                  is_correspond_to_binary_representation(&list.tail()))
             })
             .1;
@@ -180,13 +205,13 @@ mod tests {
 
     #[test]
     fn test_delete_min() {
-        let actual = BinominalHeap::with_binominal_tree(5)
+        let actual = BinominalHeap::from_element(5)
             .insert(2)
+            .insert(1)
             .insert(4)
             .insert(7)
-            .insert(1)
             .delete_min();
-
+        
         assert!(is_ordered_heap(&actual, &0));
         assert!(is_correspond_to_binary_representation(&actual));
         assert!(size_from_elements(&actual) == 4);
@@ -194,7 +219,7 @@ mod tests {
 
     #[test]
     fn test_find_min() {
-        let actual = BinominalHeap::with_binominal_tree(5)
+        let actual = BinominalHeap::from_element(5)
             .insert(2)
             .insert(4)
             .insert(4)
@@ -207,12 +232,12 @@ mod tests {
 
     #[test]
     fn test_merge() {
-        let actual_1 = BinominalHeap::with_binominal_tree(1)
+        let actual_1 = BinominalHeap::from_element(1)
             .insert(2)
             .insert(3)
             .insert(4)
             .insert(5);
-        let actual_2 = BinominalHeap::with_binominal_tree(5)
+        let actual_2 = BinominalHeap::from_element(5)
             .insert(4)
             .insert(3)
             .insert(2)
@@ -225,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let actual = BinominalHeap::with_binominal_tree(1)
+        let actual = BinominalHeap::from_element(1)
             .insert(4)
             .insert(2)
             .insert(6)
@@ -235,6 +260,7 @@ mod tests {
 
         assert!(is_ordered_heap(&actual, &0));
         assert!(is_correspond_to_binary_representation(&actual));
+        assert!(size_from_elements(&actual) == size_from_rank(&actual));
     }
 
     #[test]
@@ -244,7 +270,7 @@ mod tests {
         let actual = actual_1.link(&actual_2);
 
         assert!(is_ordered_tree(&actual, &0));
-        assert!(size_from_element(&actual) == size_from_rank(actual.rank));
+        assert!(size_from_element(&actual) == 4);
     }
 }
 
