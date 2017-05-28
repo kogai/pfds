@@ -247,4 +247,3 @@ mod tests {
         assert!(actual == expect);
     }
 }
-

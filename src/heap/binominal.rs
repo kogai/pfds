@@ -13,7 +13,7 @@ impl<T: Clone + Ord + Debug> BinominalTree<T> {
     fn new(element: T) -> Self {
         BinominalTree {
             rank: 0,
-            element,
+            element: element,
             children: box Stack::Nil,
         }
     }
@@ -39,9 +39,8 @@ pub type BinominalHeap<T: Clone + Ord + Debug> = Stack<(i32, BinominalTree<T>)>;
 
 impl<T: Clone + Ord + Debug> BinominalHeap<T> {
     fn from_list(xs: Stack<BinominalTree<T>>, rank: i32) -> Self {
-        let result = xs.foldl((rank - 1, Stack::Nil), &|(r, acc), tree| {
-            (r - 1, acc.cons((r, tree.clone())))
-        });
+        let result = xs.foldl((rank - 1, Stack::Nil),
+                              &|(r, acc), tree| (r - 1, acc.cons((r, tree.clone()))));
         result.1
     }
 
@@ -62,9 +61,7 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
 
     fn insert_tree_impl(&self, x: BinominalTree<T>, rank_of_tree: i32) -> Self {
         match self {
-            &Stack::Nil => {
-                self.cons((rank_of_tree + 1, x))
-            },
+            &Stack::Nil => self.cons((rank_of_tree + 1, x)),
             &Stack::Node((ref rank, ref head), box ref tail) => {
                 if rank_of_tree < *rank - 1 {
                     self.cons((rank_of_tree + 1, x))
@@ -102,9 +99,9 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
             &Stack::Nil => min.clone(),
             &Stack::Node((_, ref head), box ref tail) => {
                 if &head.element < min {
-                   tail.find_min_impl(&head.element) 
+                    tail.find_min_impl(&head.element)
                 } else {
-                   tail.find_min_impl(min) 
+                    tail.find_min_impl(min)
                 }
             } 
         }
@@ -128,13 +125,12 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
         match (self.clone(), other.clone()) {
             (_, Stack::Nil) => self.clone(),
             (Stack::Nil, _) => other.clone(),
-            (Stack::Node((ref s_rank, ref s), box ref s_tail), Stack::Node((ref o_rank, ref o), box ref o_tail)) => {
+            (Stack::Node((ref s_rank, ref s), box ref s_tail),
+             Stack::Node((ref o_rank, ref o), box ref o_tail)) => {
                 match s_rank {
                     _ if s_rank < o_rank => s_tail.merge(other).cons((*s_rank, s.clone())),
                     _ if s_rank > o_rank => o_tail.merge(self).cons((*o_rank, o.clone())),
-                    _ => {
-                        s_tail.merge(&o_tail).insert_tree_impl(s.link(&o), *s_rank)
-                    },
+                    _ => s_tail.merge(&o_tail).insert_tree_impl(s.link(&o), *s_rank),
                 }
             }
         }
@@ -215,7 +211,7 @@ mod tests {
             .insert(4)
             .insert(7)
             .delete_min();
-        
+
         assert!(is_ordered_heap(&actual, &0));
         assert!(is_correspond_to_binary_representation(&actual));
         assert!(size_from_elements(&actual) == 4);
@@ -277,4 +273,3 @@ mod tests {
         assert!(size_from_element(&actual) == 4);
     }
 }
-

@@ -81,25 +81,31 @@ impl<T: Clone + Debug> Stack<T> {
         }
     }
 
-    pub fn map<R, F>(&self, f: &F) -> Stack<R> where R: Clone + Debug, F: Fn(&T) -> R {
+    pub fn map<R, F>(&self, f: &F) -> Stack<R>
+        where R: Clone + Debug,
+              F: Fn(&T) -> R
+    {
         use self::Stack::*;
         match self {
             &Nil => Nil,
-            &Node(ref head, ref tail) =>  tail.map(f).cons(f(head)),
+            &Node(ref head, ref tail) => tail.map(f).cons(f(head)),
         }
     }
 
-    pub fn foldl<R, F>(&self, r: R, f: &F) -> R where R: Clone + Debug, F: Fn(R, &T) -> R {
+    pub fn foldl<R, F>(&self, r: R, f: &F) -> R
+        where R: Clone + Debug,
+              F: Fn(R, &T) -> R
+    {
         use self::Stack::*;
         match self {
             &Nil => r.clone(),
-            &Node(ref head, ref tail) => {
-                tail.foldl(f(r, head), f)
-            }, 
+            &Node(ref head, ref tail) => tail.foldl(f(r, head), f), 
         }
     }
 
-    pub fn all<F>(&self, f: &F) -> bool where F: Fn(&T) -> bool {
+    pub fn all<F>(&self, f: &F) -> bool
+        where F: Fn(&T) -> bool
+    {
         self.foldl(true, &|acc, x| acc && f(x))
     }
 
@@ -113,7 +119,7 @@ impl<T: Clone + Debug> Stack<T> {
                 } else {
                     tail.reverse().concat(Stack::new(head.clone()))
                 }
-            }, 
+            } 
         }
     }
 }

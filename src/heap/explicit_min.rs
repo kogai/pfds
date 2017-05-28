@@ -98,4 +98,3 @@ mod tests {
         assert!(actual.find_min() == Some(1));
     }
 }
-

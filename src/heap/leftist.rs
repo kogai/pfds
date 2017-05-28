@@ -16,10 +16,8 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
             1 => xs.first().unwrap().clone(),
             _ => {
                 LeftistHeap::from_list_impl(xs.chunks(2)
-                                                .map(|x| {
-                                                         x.iter().fold(Leaf, |acc, n| acc.merge(n))
-                                                     })
-                                                .collect::<Vec<_>>())
+                    .map(|x| x.iter().fold(Leaf, |acc, n| acc.merge(n)))
+                    .collect::<Vec<_>>())
             }
         }
     }
@@ -28,8 +26,8 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
         use self::LeftistHeap::*;
 
         LeftistHeap::from_list_impl(xs.into_iter()
-                                        .map(|x| Node(1, x, box Leaf, box Leaf))
-                                        .collect::<Vec<_>>())
+            .map(|x| Node(1, x, box Leaf, box Leaf))
+            .collect::<Vec<_>>())
     }
 
     fn rank(&self) -> i32 {
@@ -194,8 +192,7 @@ mod tests {
 
     #[test]
     fn test_weight_biased_leftist() {
-        let actual = LeftistHeap::Leaf
-            .insert_with_wb(5)
+        let actual = LeftistHeap::Leaf.insert_with_wb(5)
             .insert_with_wb(6)
             .insert_with_wb(4)
             .insert_with_wb(1)
@@ -264,4 +261,3 @@ mod tests {
         assert!(is_leftist(&actual));
     }
 }
-
