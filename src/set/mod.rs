@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 mod tree;
+mod red_black;
 mod map;
 
 trait Set<T: Ord + Clone + Debug> {
