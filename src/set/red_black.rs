@@ -91,8 +91,6 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
                 right: box Leaf,
             },
             &Node { ref color, ref element, box ref left, box ref right } => {
-                // println!("self {:?} x {:?}", self, x);
-
                 if x < element {
                     RedBlackTree::balance(color, element, &left.insert_inner(x), right)
                 } else if x > element {
@@ -102,6 +100,10 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
                 }
             } 
         }
+    }
+
+    fn from_ordered_list(xs: Vec<T>) -> Self {
+        xs.iter().fold(RedBlackTree::empty(), |acc, x| acc.insert(x.clone()))
     }
 }
 
@@ -183,6 +185,14 @@ mod tests {
             Some(count) => blacks.iter().all(|x| x == count),
             None => true,
         }
+    }
+
+    #[test]
+    fn test_from_ordered_list() {
+        let actual = RedBlackTree::from_ordered_list(vec![1, 2, 3, 4, 5, 6, 7]);
+        
+        assert!(is_red_has_black(&actual));
+        assert!(has_same_blacks(&actual));
     }
 
     #[test]
