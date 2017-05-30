@@ -18,22 +18,89 @@ enum RedBlackTree<T: Ord + Clone + Debug> {
     },
 }
 
+use self::RedBlackTree::*;
+use self::Color::*;
+
 impl<T: Ord + Clone + Debug> RedBlackTree<T> {
-    fn color(&self) -> Color {
-        use self::RedBlackTree::*;
-        match self {
-            &Leaf => Color::Black, 
-            &Node { ref color, .. } => color.clone(),
+    fn balance(color: &Color, element: &T, left: &Self, right: &Self) -> Self {
+        match (color, element.clone(), left.clone(), right.clone()) {
+            (&Black, ref z,
+                Node {
+                    color: Red,
+                    element: ref y,
+                    left: box Node { color: Red, element: ref x, left: box ref a, right: box ref b },
+                    right: box ref c
+                }, ref d
+            ) | 
+            (&Black, ref z,
+                Node {
+                    color: Red,
+                    element: ref x,
+                    left: box ref a,
+                    right: box Node { color: Red, element: ref y, left: box ref b, right: box ref c },
+                }, ref d
+            ) | 
+            (&Black, ref x, ref a,
+                Node {
+                    color: Red,
+                    element: ref z,
+                    left: box Node { color: Red, element: ref y, left: box ref b, right: box ref c },
+                    right: box ref d
+                }
+            ) | 
+            (&Black, ref x, ref a,
+                Node {
+                    color: Red,
+                    element: ref y,
+                    left: box ref b,
+                    right: box Node { color: Red, element: ref z, left: box ref c, right: box ref d }
+            }) => {
+                Node {
+                    color: Red,
+                    element: y.clone(),
+                    left: box Node {
+                        color: Black,
+                        element: x.clone(),
+                        left: box a.clone(),
+                        right: box b.clone(),
+                    },
+                    right: box Node {
+                        color: Black,
+                        element: z.clone(),
+                        left: box c.clone(),
+                        right: box d.clone(),
+                    },
+                }
+            }
+            _ => {
+                Node {
+                    color: color.clone(),
+                    element: element.clone(),
+                    left: box left.clone(),
+                    right: box right.clone(),
+                }
+            }
         }
     }
-
-    fn balance(&self) -> Self {
-        use self::RedBlackTree::*;
+    fn insert_inner(&self, x: &T) -> Self {
         match self {
-            &Leaf => unreachable!(),
-            &Node { ref color, ref element, ref left, ref right } => {
-                unimplemented!();
-            }
+            &Leaf => Node {
+                color: Red,
+                element: x.clone(),
+                left: box Leaf,
+                right: box Leaf,
+            },
+            &Node { ref color, ref element, box ref left, box ref right } => {
+                // println!("self {:?} x {:?}", self, x);
+
+                if x < element {
+                    RedBlackTree::balance(color, element, &left.insert_inner(x), right)
+                } else if x > element {
+                    RedBlackTree::balance(color, element, left, &right.insert_inner(x))
+                } else {
+                    self.clone()
+                }
+            } 
         }
     }
 }
@@ -44,7 +111,6 @@ impl<T: Ord + Clone + Debug> Set<T> for RedBlackTree<T> {
     }
 
     fn member(&self, x: &T) -> bool {
-        use self::RedBlackTree::*;
         match self {
             &Leaf => false,
             &Node { ref element, ref left, ref right, .. } => {
@@ -60,26 +126,17 @@ impl<T: Ord + Clone + Debug> Set<T> for RedBlackTree<T> {
     }
 
     fn insert(&self, x: T) -> Self {
-        use self::RedBlackTree::*;
-        match self {
-            &Leaf => {
-                Node {
-                    color: Color::Red,
-                    element: x,
-                    left: box Leaf,
-                    right: box Leaf,
-                }
+        if let Node { element, left, right, .. } = self.insert_inner(&x) {
+            Node {
+                color: Black,
+                element: element,
+                left: left,
+                right: right,
             }
-            &Node { ref element, ref left, ref right, .. } => {
-                if x < *element {
-                    return left.insert(x).balance();
-                }
-                if x > *element {
-                    return right.insert(x).balance();
-                }
-                self.clone()
-            } 
+        } else {
+            unreachable!();
         }
+ 
     }
 }
 
@@ -87,18 +144,21 @@ mod tests {
     use super::*;
 
     fn is_red_has_black<T: Ord + Clone + Debug>(this: &RedBlackTree<T>) -> bool {
-        use self::RedBlackTree::*;
         match this {
-            &Leaf => true,
-            &Node { ref color, ref left, ref right, .. } => {
-                *color != left.color() && *color != right.color() && is_red_has_black(left) &&
-                is_red_has_black(right)
-            }
+            &Node {
+                color: Red,
+                left: box Node { color: Red, .. },
+                ..
+            } | &Node {
+                color: Red,
+                right: box Node { color: Red, .. },
+                ..
+            } => false,
+            _ => true
         }
     }
 
     fn count_black<T: Ord + Clone + Debug>(this: &RedBlackTree<T>, count: i32) -> Vec<i32> {
-        use self::RedBlackTree::*;
         match this {
             &Leaf => vec![count + 1],
             &Node { ref color, ref left, ref right, .. } => {
@@ -127,14 +187,19 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let actual = RedBlackTree::empty().insert(1);
+        let actual = RedBlackTree::empty()
+            .insert(1)
+            .insert(2)
+            .insert(3)
+            ;
+
         assert!(is_red_has_black(&actual));
         assert!(has_same_blacks(&actual));
     }
 
     #[test]
     fn test_member() {
-        let actual = RedBlackTree::empty().insert(1);
+        let actual = RedBlackTree::empty().insert(1).insert(3).insert(5);
         assert!(actual.member(&1));
         assert!(!actual.member(&2));
     }
