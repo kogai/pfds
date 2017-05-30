@@ -22,8 +22,8 @@ use self::RedBlackTree::*;
 use self::Color::*;
 
 impl<T: Ord + Clone + Debug> RedBlackTree<T> {
-    fn balance(color: &Color, element: &T, left: &Self, right: &Self) -> Self {
-        match (color, element.clone(), left.clone(), right.clone()) {
+    fn balance_left(color: &Color, element: &T, left: &Self, right: &Self) -> Self {
+        match (color, element.clone(), left.clone()) {
             (&Black,
              ref z,
              Node { color: Red,
@@ -32,8 +32,7 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
                                element: ref x,
                                left: box ref a,
                                right: box ref b },
-                    right: box ref c },
-             ref d) |
+                    right: box ref c }) |
             (&Black,
              ref z,
              Node { color: Red,
@@ -42,11 +41,39 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
                     right: box Node { color: Red,
                                element: ref y,
                                left: box ref b,
-                               right: box ref c } },
-             ref d) |
+                               right: box ref c } }) => {
+                Node {
+                    color: Red,
+                    element: y.clone(),
+                    left: box Node {
+                        color: Black,
+                        element: x.clone(),
+                        left: box a.clone(),
+                        right: box b.clone(),
+                    },
+                    right: box Node {
+                        color: Black,
+                        element: z.clone(),
+                        left: box c.clone(),
+                        right: box right.clone(),
+                    },
+                }
+            }
+            _ => {
+                Node {
+                    color: color.clone(),
+                    element: element.clone(),
+                    left: box left.clone(),
+                    right: box right.clone(),
+                }
+            }
+        }
+    }
+
+    fn balance_right(color: &Color, element: &T, left: &Self, right: &Self) -> Self {
+        match (color, element.clone(), right.clone()) {
             (&Black,
              ref x,
-             ref a,
              Node { color: Red,
                     element: ref z,
                     left: box Node { color: Red,
@@ -56,7 +83,6 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
                     right: box ref d }) |
             (&Black,
              ref x,
-             ref a,
              Node { color: Red,
                     element: ref y,
                     left: box ref b,
@@ -70,7 +96,7 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
                     left: box Node {
                         color: Black,
                         element: x.clone(),
-                        left: box a.clone(),
+                        left: box left.clone(),
                         right: box b.clone(),
                     },
                     right: box Node {
@@ -91,6 +117,7 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
             }
         }
     }
+
     fn insert_inner(&self, x: &T) -> Self {
         match self {
             &Leaf => {
@@ -103,9 +130,9 @@ impl<T: Ord + Clone + Debug> RedBlackTree<T> {
             }
             &Node { ref color, ref element, box ref left, box ref right } => {
                 if x < element {
-                    RedBlackTree::balance(color, element, &left.insert_inner(x), right)
+                    RedBlackTree::balance_left(color, element, &left.insert_inner(x), right)
                 } else if x > element {
-                    RedBlackTree::balance(color, element, left, &right.insert_inner(x))
+                    RedBlackTree::balance_right(color, element, left, &right.insert_inner(x))
                 } else {
                     self.clone()
                 }
