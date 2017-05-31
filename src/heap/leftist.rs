@@ -7,38 +7,38 @@ pub enum LeftistHeap<T: Clone + Ord + Debug> {
     Node(i32, T, Box<LeftistHeap<T>>, Box<LeftistHeap<T>>),
 }
 
+use self::LeftistHeap::*;
+
 impl<T: Clone + Ord + Debug> LeftistHeap<T> {
     fn from_list_impl(xs: Vec<LeftistHeap<T>>) -> Self {
-        use self::LeftistHeap::*;
 
         match (&xs).len() {
             0 => Leaf,
             1 => xs.first().unwrap().clone(),
             _ => {
                 LeftistHeap::from_list_impl(xs.chunks(2)
-                    .map(|x| x.iter().fold(Leaf, |acc, n| acc.merge(n)))
-                    .collect::<Vec<_>>())
+                                                .map(|x| {
+                                                         x.iter().fold(Leaf, |acc, n| acc.merge(n))
+                                                     })
+                                                .collect::<Vec<_>>())
             }
         }
     }
 
     fn from_list(xs: Vec<T>) -> Self {
-        use self::LeftistHeap::*;
-
         LeftistHeap::from_list_impl(xs.into_iter()
-            .map(|x| Node(1, x, box Leaf, box Leaf))
-            .collect::<Vec<_>>())
+                                        .map(|x| Node(1, x, box Leaf, box Leaf))
+                                        .collect::<Vec<_>>())
     }
 
     fn rank(&self) -> i32 {
         match self {
-            &LeftistHeap::Node(rank, _, _, _) => rank,
-            &LeftistHeap::Leaf => 0,
+            &Node(rank, _, _, _) => rank,
+            &Leaf => 0,
         }
     }
 
     fn make_tree(&self, other: &Self, root: T) -> Self {
-        use self::LeftistHeap::*;
         let self_rank = self.rank();
         let other_rank = other.rank();
         let rank = if self_rank >= other_rank {
@@ -56,12 +56,10 @@ impl<T: Clone + Ord + Debug> LeftistHeap<T> {
     }
 
     fn insert_with_wb(&self, x: T) -> Self {
-        use self::LeftistHeap::*;
         self.merge_with_wb(&Node(1, x, box Leaf, box Leaf))
     }
 
     fn merge_with_wb(&self, other: &Self) -> Self {
-        use self::LeftistHeap::*;
         match (self, other) {
             (&Leaf, &Node(_, _, _, _)) => other.clone(),
             (&Node(_, _, _, _), &Leaf) |
@@ -95,13 +93,12 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
 
     fn is_empty_heap(&self) -> bool {
         match self {
-            &LeftistHeap::Leaf => true,
+            &Leaf => true,
             _ => false,
         }
     }
 
     fn insert(&self, x: T) -> Self {
-        use self::LeftistHeap::*;
         match self {
             &Node(_, ref root, ref left, ref right) => {
                 if &x <= root {
@@ -115,7 +112,6 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
     }
 
     fn merge(&self, other: &Self) -> Self {
-        use self::LeftistHeap::*;
         match (self, other) {
             (&Leaf, &Node(_, _, _, _)) => other.clone(),
             (&Node(_, _, _, _), &Leaf) |
@@ -132,7 +128,6 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
     }
 
     fn find_min(&self) -> Option<T> {
-        use self::LeftistHeap::*;
         match self {
             &Leaf => None,
             &Node(_, ref x, _, _) => Some(x.clone()),
@@ -140,7 +135,6 @@ impl<T: Clone + Ord + Debug> Heap<T> for LeftistHeap<T> {
     }
 
     fn delete_min(&self) -> Self {
-        use self::LeftistHeap::*;
         match self {
             &Leaf => self.clone(),
             &Node(_, _, ref left, ref right) => left.merge(right),
@@ -158,7 +152,6 @@ mod tests {
     fn is_leftist_inner<T: Clone + Ord + Debug>(left: &LeftistHeap<T>,
                                                 right: &LeftistHeap<T>)
                                                 -> bool {
-        use self::LeftistHeap::*;
         match (left, right) {
             (&Node(_, _, box ref left, box ref right), &Leaf) => is_leftist_inner(left, right),
             (&Leaf, &Node(_, _, _, _)) => false,
@@ -172,7 +165,6 @@ mod tests {
     }
 
     fn is_leftist<T: Clone + Ord + Debug>(x: &LeftistHeap<T>) -> bool {
-        use self::LeftistHeap::*;
         if let &Node(_, _, box ref left, box ref right) = x {
             is_leftist_inner(left, right)
         } else {
@@ -181,7 +173,6 @@ mod tests {
     }
 
     fn is_ordered<T: Clone + Ord + Debug>(x: &LeftistHeap<T>, min: &T) -> bool {
-        use self::LeftistHeap::*;
         match x {
             &Leaf => true,
             &Node(_, ref element, box ref left, box ref right) => {
@@ -192,7 +183,8 @@ mod tests {
 
     #[test]
     fn test_weight_biased_leftist() {
-        let actual = LeftistHeap::Leaf.insert_with_wb(5)
+        let actual = LeftistHeap::Leaf
+            .insert_with_wb(5)
             .insert_with_wb(6)
             .insert_with_wb(4)
             .insert_with_wb(1)
@@ -261,3 +253,4 @@ mod tests {
         assert!(is_leftist(&actual));
     }
 }
+

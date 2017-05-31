@@ -4,53 +4,55 @@ use list::List;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Stack<T: Clone + Debug> {
     Nil,
-    Node(T, Box<Stack<T>>),
+    Cell(T, Box<Stack<T>>),
 }
+
+use self::Stack::*;
 
 impl<T: Clone + Debug> List<T> for Stack<T> {
     fn empty() -> Self {
-        Stack::Nil
+        Nil
     }
 
     fn is_empty(&self) -> bool {
         match self {
-            &Stack::Nil => true,
+            &Nil => true,
             _ => false,
         }
     }
 
     fn cons(&self, x: T) -> Self {
         match self {
-            &Stack::Nil => Stack::Node(x, box Stack::Nil),
-            &Stack::Node(_, _) => Stack::Node(x, box self.clone()),
+            &Nil => Cell(x, box Nil),
+            &Cell(_, _) => Cell(x, box self.clone()),
         }
     }
 
     fn head(&self) -> T {
         match self {
-            &Stack::Nil => panic!("List is empty!"),
-            &Stack::Node(ref elm, _) => elm.clone(),
+            &Nil => panic!("List is empty!"),
+            &Cell(ref elm, _) => elm.clone(),
         }
     }
 
     fn tail(&self) -> Self {
         match self {
-            &Stack::Nil => panic!("List is empty!"),
-            &Stack::Node(_, box ref next) => next.clone(),
+            &Nil => panic!("List is empty!"),
+            &Cell(_, box ref next) => next.clone(),
         }
     }
 
     fn concat(&self, ys: Self) -> Self {
         match self {
-            &Stack::Nil => ys, 
-            &Stack::Node(ref head, box ref tail) => tail.concat(ys).cons(head.clone()),
+            &Nil => ys, 
+            &Cell(ref head, box ref tail) => tail.concat(ys).cons(head.clone()),
         }
     }
 
     fn update(&self, index: i32, x: T) -> Self {
         match self {
-            &Stack::Nil => panic!("List is empty!"),
-            &Stack::Node(ref head, box ref tail) => {
+            &Nil => panic!("List is empty!"),
+            &Cell(ref head, box ref tail) => {
                 match index {
                     0 => tail.cons(x),
                     index => tail.update(index - 1, x).cons(head.clone()),
@@ -62,13 +64,13 @@ impl<T: Clone + Debug> List<T> for Stack<T> {
 
 impl<T: Clone + Debug> Stack<T> {
     pub fn new(x: T) -> Self {
-        Stack::Node(x, box Stack::Nil)
+        Cell(x, box Nil)
     }
 
     fn suffixes(&self) -> Stack<Self> {
         match self {
-            &Stack::Nil => Stack::empty(),
-            &Stack::Node(_, box ref tail) => tail.suffixes().cons(self.clone()),
+            &Nil => Stack::empty(),
+            &Cell(_, box ref tail) => tail.suffixes().cons(self.clone()),
         }
     }
 
@@ -76,10 +78,9 @@ impl<T: Clone + Debug> Stack<T> {
         where R: Clone + Debug,
               F: Fn(&T) -> R
     {
-        use self::Stack::*;
         match self {
             &Nil => Nil,
-            &Node(ref head, ref tail) => tail.map(f).cons(f(head)),
+            &Cell(ref head, ref tail) => tail.map(f).cons(f(head)),
         }
     }
 
@@ -87,10 +88,9 @@ impl<T: Clone + Debug> Stack<T> {
         where R: Clone + Debug,
               F: Fn(R, &T) -> R
     {
-        use self::Stack::*;
         match self {
             &Nil => r.clone(),
-            &Node(ref head, ref tail) => tail.foldl(f(r, head), f), 
+            &Cell(ref head, ref tail) => tail.foldl(f(r, head), f), 
         }
     }
 
@@ -101,10 +101,9 @@ impl<T: Clone + Debug> Stack<T> {
     }
 
     pub fn reverse(&self) -> Self {
-        use self::Stack::*;
         match self {
             &Nil => self.clone(),
-            &Node(ref head, box ref tail) => {
+            &Cell(ref head, box ref tail) => {
                 if tail.is_empty() {
                     Stack::new(head.clone())
                 } else {
@@ -121,16 +120,15 @@ mod tests {
 
     #[test]
     fn test_reverse() {
-        use self::Stack::*;
         let actual = Stack::empty().cons(1).cons(2).cons(3).reverse();
-        let expect = Node(1, box Node(2, box Node(3, box Nil)));
+        let expect = Cell(1, box Cell(2, box Cell(3, box Nil)));
         assert!(actual.head() == expect.head());
     }
 
     #[test]
     fn test_map() {
         let actual = Stack::empty().cons(1).cons(2).cons(3).map(&|x| x + 1);
-        let expect = Stack::Node(4, box Stack::Node(3, box Stack::Node(2, box Stack::Nil)));
+        let expect = Cell(4, box Cell(3, box Cell(2, box Nil)));
         assert!(actual == expect);
     }
 
@@ -155,7 +153,7 @@ mod tests {
     #[test]
     fn test_cons() {
         let actual = Stack::empty().cons(1).cons(2).cons(3);
-        let expect = Stack::Node(3, box Stack::Node(2, box Stack::Node(1, box Stack::Nil)));
+        let expect = Cell(3, box Cell(2, box Cell(1, box Nil)));
         assert!(actual == expect);
     }
 
@@ -175,7 +173,7 @@ mod tests {
     #[test]
     fn test_tail() {
         let actual = Stack::empty().cons(1).cons(2).cons(3);
-        let expect = Stack::Node(2, box Stack::Node(1, box Stack::Nil));
+        let expect = Cell(2, box Cell(1, box Nil));
         assert!(actual.tail() == expect);
     }
 
@@ -183,15 +181,15 @@ mod tests {
     fn test_concat() {
         let actual = Stack::empty().cons(2).cons(1).concat(Stack::empty().cons(4).cons(3));
         let expect =
-            Stack::Node(1,
-                        box Stack::Node(2, box Stack::Node(3, box Stack::Node(4, box Stack::Nil))));
+            Cell(1,
+                        box Cell(2, box Cell(3, box Cell(4, box Nil))));
         assert!(actual == expect);
     }
 
     #[test]
     fn test_update() {
         let actual = Stack::empty().cons(1).cons(2).cons(3).update(1, 9);
-        let expect = Stack::Node(3, box Stack::Node(9, box Stack::Node(1, box Stack::Nil)));
+        let expect = Cell(3, box Cell(9, box Cell(1, box Nil)));
         assert!(actual == expect);
     }
 

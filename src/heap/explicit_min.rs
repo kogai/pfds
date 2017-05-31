@@ -8,13 +8,14 @@ enum ExplicitMin<T: Clone + Ord + Debug, H: Heap<T> + Clone> {
     Node(T, H),
 }
 
+use self::ExplicitMin::*;
+
 impl<T: Clone + Ord + Debug, H: Heap<T> + Clone> Heap<T> for ExplicitMin<T, H> {
     fn empty() -> Self {
-        ExplicitMin::Nil
+        Nil
     }
 
     fn insert(&self, x: T) -> Self {
-        use self::ExplicitMin::*;
         match self {
             &Nil => Node(x, H::empty()),
             &Node(ref min, ref heap) => {
@@ -29,13 +30,12 @@ impl<T: Clone + Ord + Debug, H: Heap<T> + Clone> Heap<T> for ExplicitMin<T, H> {
 
     fn is_empty_heap(&self) -> bool {
         match self {
-            &ExplicitMin::Nil => true,
-            &ExplicitMin::Node(_, ref heap) => heap.is_empty_heap(),
+            &Nil => true,
+            &Node(_, ref heap) => heap.is_empty_heap(),
         }
     }
 
     fn merge(&self, other: &Self) -> Self {
-        use self::ExplicitMin::*;
         match (self, other) {
             (&Nil, _) => other.clone(),
             (_, &Nil) => self.clone(),
@@ -51,13 +51,12 @@ impl<T: Clone + Ord + Debug, H: Heap<T> + Clone> Heap<T> for ExplicitMin<T, H> {
 
     fn find_min(&self) -> Option<T> {
         match self {
-            &ExplicitMin::Nil => None,
-            &ExplicitMin::Node(ref min, _) => Some(min.clone()),
+            &Nil => None,
+            &Node(ref min, _) => Some(min.clone()),
         }
     }
 
     fn delete_min(&self) -> Self {
-        use self::ExplicitMin::*;
         match self {
             &Nil => self.clone(),
             &Node(_, ref heap) => {
@@ -98,3 +97,4 @@ mod tests {
         assert!(actual.find_min() == Some(1));
     }
 }
+

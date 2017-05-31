@@ -36,6 +36,7 @@ impl<T: Clone + Ord + Debug> BinominalTree<T> {
     }
 }
 
+
 pub type BinominalHeap<T: Clone + Ord + Debug> = Stack<(i32, BinominalTree<T>)>;
 
 impl<T: Clone + Ord + Debug> BinominalHeap<T> {
@@ -56,14 +57,14 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
     fn rank(&self) -> i32 {
         match self {
             &Stack::Nil => 0,
-            &Stack::Node((rank, _), _) => rank,
+            &Stack::Cell((rank, _), _) => rank,
         }
     }
 
     fn insert_tree_impl(&self, x: BinominalTree<T>, rank_of_tree: i32) -> Self {
         match self {
             &Stack::Nil => self.cons((rank_of_tree + 1, x)),
-            &Stack::Node((ref rank, ref head), box ref tail) => {
+            &Stack::Cell((ref rank, ref head), box ref tail) => {
                 if rank_of_tree < *rank - 1 {
                     self.cons((rank_of_tree + 1, x))
                 } else {
@@ -80,7 +81,7 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
     fn remove_min_tree(&self) -> (BinominalTree<T>, Self, i32) {
         match self {
             &Stack::Nil => unreachable!(),
-            &Stack::Node((ref rank, ref head), box ref tail) => {
+            &Stack::Cell((ref rank, ref head), box ref tail) => {
                 if tail.is_empty() {
                     (head.clone(), tail.clone(), *rank)
                 } else {
@@ -98,7 +99,7 @@ impl<T: Clone + Ord + Debug> BinominalHeap<T> {
     fn find_min_impl(&self, min: &T) -> T {
         match self {
             &Stack::Nil => min.clone(),
-            &Stack::Node((_, ref head), box ref tail) => {
+            &Stack::Cell((_, ref head), box ref tail) => {
                 if &head.element < min {
                     tail.find_min_impl(&head.element)
                 } else {
@@ -126,8 +127,8 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
         match (self.clone(), other.clone()) {
             (_, Stack::Nil) => self.clone(),
             (Stack::Nil, _) => other.clone(),
-            (Stack::Node((ref s_rank, ref s), box ref s_tail),
-             Stack::Node((ref o_rank, ref o), box ref o_tail)) => {
+            (Stack::Cell((ref s_rank, ref s), box ref s_tail),
+             Stack::Cell((ref o_rank, ref o), box ref o_tail)) => {
                 match s_rank {
                     _ if s_rank < o_rank => s_tail.merge(other).cons((*s_rank, s.clone())),
                     _ if s_rank > o_rank => o_tail.merge(self).cons((*o_rank, o.clone())),
@@ -140,7 +141,7 @@ impl<T: Clone + Ord + Debug> Heap<T> for BinominalHeap<T> {
     fn find_min(&self) -> Option<T> {
         match self {
             &Stack::Nil => None,
-            &Stack::Node((_, ref head), box ref tail) => Some(tail.find_min_impl(&head.element)),
+            &Stack::Cell((_, ref head), box ref tail) => Some(tail.find_min_impl(&head.element)),
         }
     }
 
