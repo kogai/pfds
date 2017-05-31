@@ -1,19 +1,27 @@
 use std::ops::Deref;
-use std::fmt::Debug;
-
+use std::fmt::{self, Debug, Formatter};
 use std::cell::UnsafeCell;
 use std::ptr::replace;
-use std::rc::Rc;
 
-// pub enum Thunk<'a, T: 'a + Debug + PartialEq + Clone> {
 pub enum Thunk<T: Debug + PartialEq + Clone, F: FnOnce() -> T> {
     Suspend(F),
     Progress,
     Evaluated(T),
 }
 
+impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Debug for Thunk<T, F> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            &Suspend(_) => write!(f, "Suspend {{ (not yet...) }}"),
+            &Progress => write!(f, "Progress"),
+            &Evaluated(ref v) => write!(f, "Evaluated {{ {:?} }}", v),
+        }
+    }
+}
+
 use self::Thunk::*;
 
+#[derive(Debug)]
 pub struct Delay<T: Debug + PartialEq + Clone, F: FnOnce() -> T> {
     thunk: UnsafeCell<Thunk<T, F>>,
 }
@@ -27,7 +35,8 @@ impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Delay<T, F> {
         unsafe {
             match replace(self.thunk.get(), Progress) {
                 Suspend(susp) => *self.thunk.get() = Evaluated(susp()),
-                _ => (),
+                Progress => unreachable!(),
+                evaluated => *self.thunk.get() = evaluated,
             };
         }
     }
@@ -46,15 +55,34 @@ impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Deref for Delay<T, F> {
     }
 }
 
+#[macro_export]
+macro_rules! lazy {
+    ($e:expr) => {
+        self::Delay::new(move || { $e })
+    }
+}
+
 mod tests {
     use super::*;
 
     #[test]
+    fn test_thunk_macro() {
+        let actual = lazy!({
+                               println!("Evaluate only once!");
+                               10
+                           });
+        assert!(*actual == 10);
+        assert!(*actual == 10);
+        assert!(*actual == 10);
+    }
+
+    #[test]
     fn test_thunk() {
-        let actual = Delay::new(|| {
-                                    println!("Evaluate once.");
+        let actual = Delay::new(move || {
+                                    println!("Evaluate only once!");
                                     10
                                 });
+        assert!(*actual == 10);
         assert!(*actual == 10);
         assert!(*actual == 10);
     }
