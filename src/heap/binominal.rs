@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use heap::Heap;
-use list::{Stack, List};
+use list::{List};
+use list::stack::Stack;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct BinominalTree<T: Clone + Ord + Debug> {
