@@ -4,3 +4,4 @@
 mod list;
 mod set;
 mod heap;
+mod lazy;
