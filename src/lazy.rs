@@ -3,13 +3,14 @@ use std::fmt::{self, Debug, Formatter};
 use std::cell::UnsafeCell;
 use std::ptr::replace;
 
-pub enum Thunk<T: Debug + PartialEq + Clone, F: FnOnce() -> T> {
+use self::State::*;
+enum State<T: Debug + PartialEq + Clone, F: FnOnce() -> T> {
     Suspend(F),
     Progress,
     Evaluated(T),
 }
 
-impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Debug for Thunk<T, F> {
+impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Debug for State<T, F> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             &Suspend(_) => write!(f, "Suspend {{ (not yet...) }}"),
@@ -19,19 +20,18 @@ impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Debug for Thunk<T, F> {
     }
 }
 
-use self::Thunk::*;
 
 #[derive(Debug)]
-pub struct Delay<T: Debug + PartialEq + Clone, F: FnOnce() -> T> {
-    thunk: UnsafeCell<Thunk<T, F>>,
+pub struct Thunk<T: Debug + PartialEq + Clone, F: FnOnce() -> T> {
+    thunk: UnsafeCell<State<T, F>>,
 }
 
-impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Delay<T, F> {
-    fn new(f: F) -> Self {
-        Delay { thunk: UnsafeCell::new(Suspend(f)) }
+impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Thunk<T, F> {
+    pub fn new(f: F) -> Self {
+        Thunk { thunk: UnsafeCell::new(Suspend(f)) }
     }
 
-    fn force(&self) {
+    pub fn force(&self) {
         unsafe {
             match replace(self.thunk.get(), Progress) {
                 Suspend(susp) => *self.thunk.get() = Evaluated(susp()),
@@ -42,7 +42,7 @@ impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Delay<T, F> {
     }
 }
 
-impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Deref for Delay<T, F> {
+impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Deref for Thunk<T, F> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -58,7 +58,7 @@ impl<T: Debug + PartialEq + Clone, F: FnOnce() -> T> Deref for Delay<T, F> {
 #[macro_export]
 macro_rules! lazy {
     ($e:expr) => {
-        self::Delay::new(move || { $e })
+        self::Thunk::new(move || { $e })
     }
 }
 
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_thunk() {
-        let actual = Delay::new(move || {
+        let actual = Thunk::new(move || {
                                     println!("Evaluate only once!");
                                     10
                                 });
