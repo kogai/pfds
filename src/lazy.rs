@@ -2,6 +2,7 @@ use std::ops::Deref;
 use std::fmt::{self, Debug, Formatter};
 use std::cell::UnsafeCell;
 use std::ptr::replace;
+use std::cmp::PartialEq;
 
 use self::Thunk::*;
 pub enum Thunk<'a, T: Debug + PartialEq + Clone> {
@@ -21,9 +22,33 @@ impl<'a, T: Debug + PartialEq + Clone> Debug for Thunk<'a, T> {
 }
 
 
+#[macro_export]
+macro_rules! susp {
+    ($e:expr) => {
+        self::Susp::new(move || { $e })
+    }
+}
+
 #[derive(Debug)]
 pub struct Susp<'a, T: Debug + PartialEq + Clone> {
     thunk: UnsafeCell<Thunk<'a, T>>,
+}
+
+impl<'a, T: Debug + PartialEq + Clone> PartialEq for Susp<'a, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.force();
+        other.force();
+        unsafe {
+            match (&*self.thunk.get(), &*other.thunk.get()) {
+                (&Evaluated(ref x), &Evaluated(ref y)) => x == y,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
 }
 
 impl<'a, T: Debug + PartialEq + Clone> Susp<'a, T> {
@@ -57,15 +82,22 @@ impl<'a, T: Debug + PartialEq + Clone> Deref for Susp<'a, T> {
     }
 }
 
-#[macro_export]
-macro_rules! susp {
-    ($e:expr) => {
-        self::Susp::new(move || { $e })
-    }
-}
+// TODO: add fmt to show inner state of Thunk
 
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_ne() {
+        assert!(susp!(10) != susp!(20));
+        assert!(!(susp!(10) != susp!(10)));
+    }
+
+    #[test]
+    fn test_eq() {
+        assert!(susp!(10) == susp!(10));
+        assert!(!(susp!(10) == susp!(20)));
+    }
 
     fn plus<'a>(x: Susp<'a, i32>, y: Susp<'a, i32>) -> Susp<'a, i32> {
         susp!({
