@@ -3,10 +3,14 @@ use std::fmt::{self, Debug, Formatter};
 use std::cell::UnsafeCell;
 use std::ptr::replace;
 use std::cmp::PartialEq;
+use std::clone::Clone;
+use std::rc::Rc;
+
 
 use self::Thunk::*;
+
 pub enum Thunk<'a, T: Debug + PartialEq + Clone> {
-    Suspend(Box<'a + Fn() -> T>),
+    Suspend(Rc<'a + Fn() -> T>),
     Progress,
     Evaluated(T),
 }
@@ -17,6 +21,16 @@ impl<'a, T: Debug + PartialEq + Clone> Debug for Thunk<'a, T> {
             &Suspend(_) => write!(f, "Suspend {{ (not yet...) }}"),
             &Progress => write!(f, "Progress"),
             &Evaluated(ref v) => write!(f, "Evaluated {{ {:?} }}", v),
+        }
+    }
+}
+
+impl<'a, T: Debug + PartialEq + Clone> Clone for Thunk<'a, T> {
+    fn clone(&self) -> Self {
+        match *self {
+            Suspend(ref suspention) => Suspend(suspention.clone()),
+            Progress => Progress,
+            Evaluated(ref v) => Evaluated(v.clone()),
         }
     }
 }
@@ -45,15 +59,18 @@ impl<'a, T: Debug + PartialEq + Clone> PartialEq for Susp<'a, T> {
             }
         }
     }
+}
 
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
+impl<'a, T: Debug + PartialEq + Clone> Clone for Susp<'a, T> {
+    fn clone(&self) -> Self {
+        let thunk = unsafe { &*self.thunk.get() };
+        Susp { thunk: UnsafeCell::new(thunk.clone()) }
     }
 }
 
 impl<'a, T: Debug + PartialEq + Clone> Susp<'a, T> {
     pub fn new<F: 'a + Fn() -> T>(f: F) -> Self {
-        Susp { thunk: UnsafeCell::new(Suspend(box f)) }
+        Susp { thunk: UnsafeCell::new(Suspend(Rc::new(f))) }
     }
 
     pub fn force(&self) {
@@ -86,6 +103,13 @@ impl<'a, T: Debug + PartialEq + Clone> Deref for Susp<'a, T> {
 
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_clone() {
+        let actual = susp!(10).clone();
+        assert!(actual != susp!(20));
+        assert!(actual == susp!(10));
+    }
 
     #[test]
     fn test_ne() {
