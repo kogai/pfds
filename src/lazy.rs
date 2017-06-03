@@ -45,7 +45,7 @@ macro_rules! susp {
 
 #[derive(Debug)]
 pub struct Susp<'a, T: Debug + PartialEq + Clone> {
-    thunk: UnsafeCell<Thunk<'a, T>>,
+    pub delay: UnsafeCell<Thunk<'a, T>>,
 }
 
 impl<'a, T: Debug + PartialEq + Clone> PartialEq for Susp<'a, T> {
@@ -53,7 +53,7 @@ impl<'a, T: Debug + PartialEq + Clone> PartialEq for Susp<'a, T> {
         self.force();
         other.force();
         unsafe {
-            match (&*self.thunk.get(), &*other.thunk.get()) {
+            match (&*self.delay.get(), &*other.delay.get()) {
                 (&Evaluated(ref x), &Evaluated(ref y)) => x == y,
                 _ => unreachable!(),
             }
@@ -63,24 +63,28 @@ impl<'a, T: Debug + PartialEq + Clone> PartialEq for Susp<'a, T> {
 
 impl<'a, T: Debug + PartialEq + Clone> Clone for Susp<'a, T> {
     fn clone(&self) -> Self {
-        let thunk = unsafe { &*self.thunk.get() };
-        Susp { thunk: UnsafeCell::new(thunk.clone()) }
+        let thunk = unsafe { &*self.delay.get() };
+        Susp { delay: UnsafeCell::new(thunk.clone()) }
     }
 }
 
 impl<'a, T: Debug + PartialEq + Clone> Susp<'a, T> {
     pub fn new<F: 'a + Fn() -> T>(f: F) -> Self {
-        Susp { thunk: UnsafeCell::new(Suspend(Rc::new(f))) }
+        Susp { delay: UnsafeCell::new(Suspend(Rc::new(f))) }
+    }
+
+    pub fn thunk(&self) -> &Thunk<'a, T> {
+        unsafe { &*self.delay.get() }
     }
 
     pub fn force(&self) {
         unsafe {
-            match replace(self.thunk.get(), Progress) {
+            match replace(self.delay.get(), Progress) {
                 Suspend(susp) => {
-                    *self.thunk.get() = Evaluated(susp());
+                    *self.delay.get() = Evaluated(susp());
                 },
                 Progress => unreachable!(),
-                evaluated => *self.thunk.get() = evaluated,
+                evaluated => *self.delay.get() = evaluated,
             };
         }
     }
@@ -92,7 +96,7 @@ impl<'a, T: Debug + PartialEq + Clone> Deref for Susp<'a, T> {
     fn deref(&self) -> &T {
         self.force();
 
-        match unsafe { &*self.thunk.get() } {
+        match unsafe { &*self.delay.get() } {
             &Evaluated(ref x) => &x,
             _ => unreachable!(),
         }

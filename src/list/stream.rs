@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use lazy::Susp;
+use lazy::{Susp, Thunk};
 
 use self::StreamCell::*;
 
@@ -16,10 +16,18 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
         susp!(Nil)
     }
 
-    fn concat(&self, other: &Self) -> Self {
-        match **self {
-            Nil => other.clone(),
-            Cons(ref head, ref body) => susp!(Cons(head.clone(), box body.concat(other))),
+    fn concat<'b>(&self, other: &Self) -> Stream<'a, T> {
+        match self.thunk() {
+            &Thunk::Suspend(ref susp) => {
+                match susp() {
+                    Nil => other.clone(),
+                    Cons(ref head, ref tail) => {
+                        let stream = Cons(head.clone(), box tail.concat(other));
+                        susp!(stream.clone())
+                    }
+                }
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -39,12 +47,24 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
 mod tests {
     use super::*;
 
+    fn is_match_with_vec<'a, T: 'a + Debug + PartialEq + Clone>(xs: Stream<'a, T>,
+                                                                ys: Vec<T>)
+                                                                -> bool {
+        ys.iter()
+            .fold((xs, true), |(xs, prev), y| match *xs {
+                Nil => (susp!(Nil), false),
+                Cons(ref head, box ref tail) => (tail.clone(), prev && head == y),
+            })
+            .1
+    }
+
     #[test]
     fn test_concat() {
-        let actual = susp!(Cons(1, box Stream::empty()))
-            .concat(&susp!(Cons(2, box Stream::empty())));
-        println!("{:?}", *actual);
-        // unimplemented!();
+        let actual_1 = susp!(Cons(1, box Stream::empty()));
+        let actual_2 = susp!(Cons(2, box Stream::empty()));
+
+        let actual = actual_1.concat(&actual_2);
+        assert!(is_match_with_vec(actual, vec![1, 2]));
     }
 }
 
