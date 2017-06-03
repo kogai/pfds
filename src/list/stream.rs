@@ -28,13 +28,14 @@ impl<'a, T: Debug + PartialEq + Clone> Stream<'a, T> {
     }
 
     fn concat(&self, other: &Self) -> Self {
-        match self.unwrap() {
-            Nil => other.clone(),
-            Cons(ref head, ref tail) => {
-                let stream = Cons(head.clone(), box tail.concat(other));
-                susp!(stream.clone())
-            }
-        }
+        let this = self.clone();
+        let that = other.clone();
+        susp!({
+                  match *this {
+                      Nil => (*that).clone(),
+                      Cons(ref head, ref tail) => Cons(head.clone(), box tail.concat(&that)),
+                  }
+              })
     }
 
     /*
@@ -74,11 +75,11 @@ mod tests {
 
     #[test]
     fn test_concat() {
-        let actual_1 = susp!(Cons(1, box Stream::empty()));
-        let actual_2 = susp!(Cons(2, box Stream::empty()));
+        let actual_1 = Stream::empty().cons(&1).cons(&2).cons(&3);
+        let actual_2 = Stream::empty().cons(&4).cons(&5).cons(&6);
 
         let actual = actual_1.concat(&actual_2);
-        assert!(is_match_with_vec(actual, vec![1, 2]));
+        assert!(is_match_with_vec(actual, vec![1, 2, 3, 4, 5, 6]));
     }
 }
 
