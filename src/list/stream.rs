@@ -16,7 +16,25 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
         susp!(Nil)
     }
 
-    fn concat<'b>(&self, other: &Self) -> Stream<'a, T> {
+    fn cons(&self, x: &T) -> Self {
+        match self.thunk() {
+            &Thunk::Suspend(ref susp) => {
+                match susp() {
+                    Nil => {
+                        let result = Cons(x.clone(), box Stream::empty());
+                        susp!(result.clone())
+                    }
+                    Cons(ref head, ref tail) => {
+                        let result = Cons(head.clone(), box tail.cons(x));
+                        susp!(result.clone())
+                    }
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn concat(&self, other: &Self) -> Self {
         match self.thunk() {
             &Thunk::Suspend(ref susp) => {
                 match susp() {
@@ -56,6 +74,12 @@ mod tests {
                 Cons(ref head, box ref tail) => (tail.clone(), prev && head == y),
             })
             .1
+    }
+
+    #[test]
+    fn test_cons() {
+        let actual = susp!(Cons(1, box Stream::empty())).cons(&2);
+        assert!(is_match_with_vec(actual, vec![1, 2]));
     }
 
     #[test]

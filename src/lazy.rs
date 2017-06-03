@@ -103,8 +103,6 @@ impl<'a, T: Debug + PartialEq + Clone> Deref for Susp<'a, T> {
     }
 }
 
-// TODO: add fmt to show inner state of Thunk
-
 mod tests {
     use super::*;
 
