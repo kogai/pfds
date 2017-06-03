@@ -17,7 +17,7 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
     }
 
     fn cons(&self, x: &T) -> Self {
-        match self.lazy() {
+        match self.unwrap() {
             Nil => {
                 let result = Cons(x.clone(), box Stream::empty());
                 susp!(result.clone())
@@ -30,7 +30,7 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
     }
 
     fn concat(&self, other: &Self) -> Self {
-        match self.lazy() {
+        match self.unwrap() {
             Nil => other.clone(),
             Cons(ref head, ref tail) => {
                 let stream = Cons(head.clone(), box tail.concat(other));

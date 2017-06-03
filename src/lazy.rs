@@ -73,9 +73,14 @@ impl<'a, T: Debug + PartialEq + Clone> Susp<'a, T> {
         Susp { delay: UnsafeCell::new(Suspend(Rc::new(f))) }
     }
 
-    pub fn lazy(&self) -> T {
-        match unsafe { &*self.delay.get() } {
-            &Thunk::Suspend(ref susp) => susp(),
+    pub fn thunk(&self) -> &Thunk<'a, T> {
+        unsafe { &*self.delay.get() }
+    }
+
+    pub fn unwrap(&self) -> T {
+        self.force();
+        match self.thunk() {
+            &Evaluated(ref v) => v.clone(),
             _ => unreachable!(),
         }
     }
@@ -108,6 +113,32 @@ impl<'a, T: Debug + PartialEq + Clone> Deref for Susp<'a, T> {
 
 mod tests {
     use super::*;
+
+    #[derive(Debug, PartialEq, Clone)]
+    enum LazyMatch {
+        One,
+        Two
+    }
+
+    #[test]
+    fn test_lazy_match() {
+        use self::LazyMatch::*;
+
+        let anonymous = susp!({
+            println!("Evaluated only once.");
+            One
+        });
+
+        let actual = match anonymous.thunk() {
+            &Suspend(ref sus) => {
+                println!("Expect not evaluated yet.");
+                susp!(sus() != Two)
+            },
+            _ => unimplemented!(),
+        };
+        // Expect not evaluate match yet here.
+        assert!(*actual); // Expect evaluate.
+    }
 
     #[test]
     fn test_clone() {
