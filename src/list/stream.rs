@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use lazy::Susp;
+use lazy::{Susp, Thunk};
 
 use self::StreamCell::*;
 
@@ -11,22 +11,20 @@ enum StreamCell<'a, T: 'a + Debug + PartialEq + Clone> {
 
 type Stream<'a, T: 'a + Debug + PartialEq + Clone> = Susp<'a, StreamCell<'a, T>>;
 
-impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
+impl<'a, T: Debug + PartialEq + Clone> Stream<'a, T> {
     fn empty() -> Self {
         susp!(Nil)
     }
 
     fn cons(&self, x: &T) -> Self {
-        match self.unwrap() {
-            Nil => {
-                let result = Cons(x.clone(), box Stream::empty());
-                susp!(result.clone())
-            }
-            Cons(ref head, ref tail) => {
-                let result = Cons(head.clone(), box tail.cons(x));
-                susp!(result.clone())
-            }
-        }
+        let this = self.clone();
+        let x = x.clone();
+        susp!({
+                  match *this {
+                      Nil => Cons(x.clone(), box Stream::empty()),
+                      Cons(ref head, ref tail) => Cons(head.clone(), box tail.cons(&x)),
+                  }
+              })
     }
 
     fn concat(&self, other: &Self) -> Self {
@@ -70,7 +68,7 @@ mod tests {
 
     #[test]
     fn test_cons() {
-        let actual = susp!(Cons(1, box Stream::empty())).cons(&2).cons(&3);
+        let actual = Stream::empty().cons(&1).cons(&2).cons(&3);
         assert!(is_match_with_vec(actual, vec![1, 2, 3]));
     }
 

@@ -69,7 +69,7 @@ impl<'a, T: Debug + PartialEq + Clone> Clone for Susp<'a, T> {
 }
 
 impl<'a, T: Debug + PartialEq + Clone> Susp<'a, T> {
-    pub fn new<F: 'a + Fn() -> T>(f: F) -> Self {
+    pub fn new<F>(f: F) -> Self where F: 'a + Fn() -> T {
         Susp { delay: UnsafeCell::new(Suspend(Rc::new(f))) }
     }
 
@@ -115,14 +115,14 @@ mod tests {
     use super::*;
 
     #[derive(Debug, PartialEq, Clone)]
-    enum LazyMatch {
+    enum Matchable {
         One,
         Two
     }
 
     #[test]
     fn test_lazy_match() {
-        use self::LazyMatch::*;
+        use self::Matchable::*;
 
         let anonymous = susp!({
             println!("Evaluated only once.");
@@ -134,7 +134,7 @@ mod tests {
                 println!("Expect not evaluated yet.");
                 susp!(sus() != Two)
             },
-            _ => unimplemented!(),
+            _ => unreachable!(),
         };
         // Expect not evaluate match yet here.
         assert!(*actual); // Expect evaluate.
