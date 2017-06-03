@@ -73,8 +73,11 @@ impl<'a, T: Debug + PartialEq + Clone> Susp<'a, T> {
         Susp { delay: UnsafeCell::new(Suspend(Rc::new(f))) }
     }
 
-    pub fn thunk(&self) -> &Thunk<'a, T> {
-        unsafe { &*self.delay.get() }
+    pub fn lazy(&self) -> T {
+        match unsafe { &*self.delay.get() } {
+            &Thunk::Suspend(ref susp) => susp(),
+            _ => unreachable!(),
+        }
     }
 
     pub fn force(&self) {

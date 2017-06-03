@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use lazy::{Susp, Thunk};
+use lazy::Susp;
 
 use self::StreamCell::*;
 
@@ -17,38 +17,29 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
     }
 
     fn cons(&self, x: &T) -> Self {
-        match self.thunk() {
-            &Thunk::Suspend(ref susp) => {
-                match susp() {
-                    Nil => {
-                        let result = Cons(x.clone(), box Stream::empty());
-                        susp!(result.clone())
-                    }
-                    Cons(ref head, ref tail) => {
-                        let result = Cons(head.clone(), box tail.cons(x));
-                        susp!(result.clone())
-                    }
-                }
+        match self.lazy() {
+            Nil => {
+                let result = Cons(x.clone(), box Stream::empty());
+                susp!(result.clone())
             }
-            _ => unreachable!(),
+            Cons(ref head, ref tail) => {
+                let result = Cons(head.clone(), box tail.cons(x));
+                susp!(result.clone())
+            }
         }
     }
 
     fn concat(&self, other: &Self) -> Self {
-        match self.thunk() {
-            &Thunk::Suspend(ref susp) => {
-                match susp() {
-                    Nil => other.clone(),
-                    Cons(ref head, ref tail) => {
-                        let stream = Cons(head.clone(), box tail.concat(other));
-                        susp!(stream.clone())
-                    }
-                }
+        match self.lazy() {
+            Nil => other.clone(),
+            Cons(ref head, ref tail) => {
+                let stream = Cons(head.clone(), box tail.concat(other));
+                susp!(stream.clone())
             }
-            _ => unreachable!(),
         }
     }
 
+    /*
     fn take(&self, n: i32) -> Self {
         unimplemented!();
     }
@@ -60,6 +51,7 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> Stream<'a, T> {
     fn reverse(&self) -> Self {
         unimplemented!();
     }
+    */
 }
 
 mod tests {
@@ -78,8 +70,8 @@ mod tests {
 
     #[test]
     fn test_cons() {
-        let actual = susp!(Cons(1, box Stream::empty())).cons(&2);
-        assert!(is_match_with_vec(actual, vec![1, 2]));
+        let actual = susp!(Cons(1, box Stream::empty())).cons(&2).cons(&3);
+        assert!(is_match_with_vec(actual, vec![1, 2, 3]));
     }
 
     #[test]
