@@ -101,21 +101,14 @@ mod tests {
 
     #[test]
     fn test_cons() {
-        let actual = LinkedList::empty().cons(1).cons(2).cons(3);
+        let actual = LinkedList::empty().cons(3).cons(2).cons(1);
         assert!(is_match_with_vec(actual, vec![1, 2, 3]));
     }
 
-    fn is_match_with_vec<T, L>(xs: L, ys: Vec<T>) -> bool
-        where T: Debug + PartialEq + PartialOrd + Clone,
-              L: List<T>
-    {
-        ys.iter()
-            .fold((xs, true), |(xs, prev), y| {
-                let head = xs.head();
-                let tail = xs.tail();
-                (tail, prev && &head == y)
-            })
-            .1
+    #[test]
+    fn test_snoc() {
+        let actual = LinkedList::empty().snoc(1).snoc(2).snoc(3);
+        assert!(is_match_with_vec(actual, vec![1, 2, 3]));
     }
 }
 

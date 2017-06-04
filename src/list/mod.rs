@@ -1,7 +1,10 @@
+use std::fmt::Debug;
+
 pub mod stack;
 pub mod stream;
 pub mod linked_list;
 pub mod queue;
+pub mod deque;
 
 pub trait List<T: Clone>: Sized {
     fn empty() -> Self;
@@ -11,5 +14,18 @@ pub trait List<T: Clone>: Sized {
     fn tail(&self) -> Self;
     fn concat(&self, ys: Self) -> Self;
     fn update(&self, index: i32, x: T) -> Self;
+}
+
+pub fn is_match_with_vec<T, L>(xs: L, ys: Vec<T>) -> bool
+    where T: Debug + PartialEq + PartialOrd + Clone,
+            L: List<T>
+{
+    ys.iter()
+        .fold((xs, true), |(xs, prev), y| {
+            let head = xs.head();
+            let tail = xs.tail();
+            (tail, prev && &head == y)
+        })
+        .1
 }
 

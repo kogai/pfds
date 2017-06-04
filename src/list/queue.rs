@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use list::List;
+use list::{List, is_match_with_vec};
 use list::linked_list::LinkedList;
 
 use self::LinkedList::*;
@@ -7,7 +7,7 @@ use self::LinkedList::*;
 #[derive(Debug, Clone, PartialEq)]
 struct BatchedQueue<T: Clone + PartialOrd + PartialEq + Debug>(LinkedList<T>, LinkedList<T>);
 
-impl<T> BatchedQueue<T>
+impl<T> List<T> for BatchedQueue<T>
     where T: Clone + PartialEq + PartialOrd + Debug
 {
     fn empty() -> Self {
@@ -46,6 +46,13 @@ impl<T> BatchedQueue<T>
             }
         }
     }
+
+    fn concat(&self, _: Self) -> Self {
+        unimplemented!();
+    }
+    fn update(&self, _: i32, _: T) -> Self {
+        unimplemented!();
+    }
 }
 
 mod tests {
@@ -55,18 +62,6 @@ mod tests {
     fn test_cons() {
         let actual = BatchedQueue::empty().cons(1).cons(2).cons(3);
         assert!(is_match_with_vec(actual, vec![1, 2, 3]));
-    }
-
-    fn is_match_with_vec<T>(xs: BatchedQueue<T>, ys: Vec<T>) -> bool
-        where T: Debug + PartialEq + PartialOrd + PartialOrd + Clone
-    {
-        ys.iter()
-            .fold((xs, true), |(xs, prev), y| {
-                let head = xs.head();
-                let tail = xs.tail();
-                (tail, prev && &head == y)
-            })
-            .1
     }
 }
 
