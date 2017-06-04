@@ -1,35 +1,50 @@
 use std::fmt::Debug;
+use list::List;
+use list::linked_list::LinkedList;
+
+use self::LinkedList::*;
 
 #[derive(Debug, Clone, PartialEq)]
-struct BatchedQueue<T: Clone + PartialEq + Debug> {
-    fore: Vec<T>,
-    rear: Vec<T>,
-}
+struct BatchedQueue<T: Clone + PartialOrd + PartialEq + Debug>(LinkedList<T>, LinkedList<T>);
 
 impl<T> BatchedQueue<T>
-    where T: Clone + PartialEq + Debug
+    where T: Clone + PartialEq + PartialOrd + Debug
 {
     fn empty() -> Self {
-        BatchedQueue {
-            fore: vec![],
-            rear: vec![],
-        }
+        BatchedQueue(LinkedList::empty(), LinkedList::empty())
     }
 
     fn is_empty(&self) -> bool {
-        self.fore.is_empty()
+        match self {
+            &BatchedQueue(Nil, _) => true,
+            _ => false,
+        }
     }
 
-    fn snoc(&self, x: &T) -> Self {
-        unimplemented!();
+    fn cons(&self, x: T) -> Self {
+        match self {
+            &BatchedQueue(Nil, _) => BatchedQueue(Cons(x, box Nil), Nil),
+            &BatchedQueue(ref fore, ref rear) => {
+                BatchedQueue(fore.clone(), Cons(x, box rear.clone()))
+            }
+        }
     }
 
     fn head(&self) -> T {
-        unimplemented!();
+        match self {
+            &BatchedQueue(Nil, _) => unreachable!(),
+            &BatchedQueue(ref fore, _) => fore.head(),
+        }
     }
 
     fn tail(&self) -> Self {
-        unimplemented!();
+        match self {
+            &BatchedQueue(Nil, ref rear) |
+            &BatchedQueue(Cons(_, box Nil), ref rear) => BatchedQueue(rear.reverse(), Nil),
+            &BatchedQueue(Cons(_, box ref f_tail), ref rear) => {
+                BatchedQueue(f_tail.clone(), rear.clone())
+            }
+        }
     }
 }
 
@@ -37,13 +52,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sonc() {
-        let actual = BatchedQueue::empty().snoc(&1).snoc(&2).snoc(&3);
+    fn test_cons() {
+        let actual = BatchedQueue::empty().cons(1).cons(2).cons(3);
         assert!(is_match_with_vec(actual, vec![1, 2, 3]));
     }
 
     fn is_match_with_vec<T>(xs: BatchedQueue<T>, ys: Vec<T>) -> bool
-        where T: Debug + PartialEq + PartialOrd + Clone
+        where T: Debug + PartialEq + PartialOrd + PartialOrd + Clone
     {
         ys.iter()
             .fold((xs, true), |(xs, prev), y| {

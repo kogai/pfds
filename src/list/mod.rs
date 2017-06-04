@@ -1,6 +1,7 @@
 pub mod stack;
 pub mod stream;
-pub mod list;
+pub mod linked_list;
+pub mod queue;
 
 pub trait List<T: Clone>: Sized {
     fn empty() -> Self;

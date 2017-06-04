@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use list::List;
 
 #[derive(Debug, Clone, PartialEq)]
-enum LinkedList<T: Debug + PartialEq + PartialOrd + Clone> {
+pub enum LinkedList<T: Debug + PartialEq + PartialOrd + Clone> {
     Nil,
     Cons(T, Box<LinkedList<T>>),
 }
@@ -65,8 +65,25 @@ impl<T> List<T> for LinkedList<T>
     }
 }
 
+impl<T> LinkedList<T>
+    where T: Debug + PartialEq + PartialOrd + Clone
+{
+    pub fn reverse(&self) -> Self {
+        match self {
+            &Nil => self.clone(),
+            &Cons(ref head, box ref tail) => tail.reverse().cons(head.clone()),
+        }
+    }
+}
+
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_reverse() {
+        let actual = LinkedList::empty().cons(1).cons(2).cons(3).reverse();
+        assert!(is_match_with_vec(actual, vec![3, 2, 1]));
+    }
 
     #[test]
     fn test_update() {
