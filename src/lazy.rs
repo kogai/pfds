@@ -154,6 +154,11 @@ mod tests {
     }
 
     #[test]
+    fn test_unwrap() {
+        assert!(susp!(10).unwrap() == 10);
+    }
+
+    #[test]
     fn test_eq() {
         assert!(susp!(10) == susp!(10));
         assert!(!(susp!(10) == susp!(20)));

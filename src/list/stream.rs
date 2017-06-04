@@ -1,15 +1,15 @@
 use std::fmt::Debug;
-use lazy::{Susp, Thunk};
+use lazy::Susp;
 
 use self::StreamCell::*;
 
 #[derive(Debug, PartialEq, Clone)]
-enum StreamCell<'a, T: 'a + Debug + PartialEq + Clone> {
+enum StreamCell<'a, T: 'a + Debug + PartialEq + PartialOrd + Clone> {
     Nil,
     Cons(T, Box<Stream<'a, T>>),
 }
 
-impl<'a, T: 'a + Debug + PartialEq + Clone> StreamCell<'a, T> {
+impl<'a, T: 'a + Debug + PartialEq + PartialOrd + Clone> StreamCell<'a, T> {
     fn drop_impl(&self, n: i32) -> Self {
         match self {
             &Nil => Nil,
@@ -28,11 +28,41 @@ impl<'a, T: 'a + Debug + PartialEq + Clone> StreamCell<'a, T> {
             }
         }
     }
+
+    fn insert(&self, x: &T) -> Self {
+        match self {
+            &Nil => Cons(x.clone(), box Stream::empty()),
+            &Cons(ref head, box ref tail) => {
+                if x < head {
+                    let head = head.clone();
+                    let tail = tail.clone();
+                    Cons(x.clone(), box susp!(tail.insert(&head)))
+                } else {
+                    let tail = tail.clone();
+                    let x = x.clone();
+                    Cons(head.clone(), box susp!(tail.insert(&x)))
+                }
+            }
+        }
+    }
+
+    fn insert_sort_impl(&self, sorted: &Self, x: &T) -> Self {
+        match self {
+            &Nil => sorted.clone(),
+            &Cons(ref head, ref tail) => {
+                if x < head {
+                    tail.insert_sort_impl(&sorted.insert(x), head)
+                } else {
+                    tail.insert_sort_impl(&sorted.insert(head), x)
+                }
+            }
+        }
+    }
 }
 
-type Stream<'a, T: 'a + Debug + PartialEq + Clone> = Susp<'a, StreamCell<'a, T>>;
+type Stream<'a, T: 'a + Debug + PartialEq + PartialOrd + Clone> = Susp<'a, StreamCell<'a, T>>;
 
-impl<'a, T: Debug + PartialEq + Clone> Stream<'a, T> {
+impl<'a, T: Debug + PartialEq + PartialOrd + Clone> Stream<'a, T> {
     fn empty() -> Self {
         susp!(Nil)
     }
@@ -79,10 +109,26 @@ impl<'a, T: Debug + PartialEq + Clone> Stream<'a, T> {
         let this = self.clone();
         susp!((*this).reverse_impl(&Nil))
     }
+
+    fn insert_sort(&self) -> Self {
+        let this = self.clone();
+        susp!({
+                  match &*this.take(1) {
+                      &Nil => Nil,
+                      &Cons(ref head, _) => (*this).insert_sort_impl(&Nil, &head.clone()),
+                  }
+              })
+    }
 }
 
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_insert_sort() {
+        let actual = Stream::empty().cons(&3).cons(&1).cons(&2).insert_sort();
+        assert!(is_match_with_vec(actual, vec![1, 2, 3]));
+    }
 
     #[test]
     fn test_reverse() {
@@ -117,9 +163,9 @@ mod tests {
         assert!(is_match_with_vec(actual, vec![1, 2, 3, 4, 5, 6]));
     }
 
-    fn is_match_with_vec<'a, T: 'a + Debug + PartialEq + Clone>(xs: Stream<'a, T>,
-                                                                ys: Vec<T>)
-                                                                -> bool {
+    fn is_match_with_vec<'a, T>(xs: Stream<'a, T>, ys: Vec<T>) -> bool
+        where T: 'a + Debug + PartialEq + PartialOrd + Clone
+    {
         ys.iter()
             .fold((xs, true), |(xs, prev), y| match *xs {
                 Nil => (susp!(Nil), false),
