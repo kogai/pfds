@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use list::List;
+use list::{List, is_match_with_vec};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LinkedList<T: Debug + PartialEq + PartialOrd + Clone> {
@@ -26,7 +26,7 @@ impl<T> List<T> for LinkedList<T>
     fn cons(&self, x: T) -> Self {
         match self {
             &Nil => Cons(x, box Nil),
-            &Cons(ref head, ref tail) => Cons(head.clone(), box tail.cons(x)),
+            _ => Cons(x, box self.clone()),
         }
     }
 
@@ -71,8 +71,32 @@ impl<T> LinkedList<T>
     pub fn reverse(&self) -> Self {
         match self {
             &Nil => self.clone(),
-            &Cons(ref head, box ref tail) => tail.reverse().cons(head.clone()),
+            &Cons(ref head, box ref tail) => tail.reverse().snoc(head.clone()),
         }
+    }
+
+    fn snoc(&self, x: T) -> Self {
+        match self {
+            &Nil => Cons(x, box Nil),
+            &Cons(ref head, ref tail) => Cons(head.clone(), box tail.snoc(x)),
+        }
+    }
+
+    fn split_impl(&self, index: i32, (fore, rear): (Self, Self)) -> (Self, Self) {
+        match self {
+            &Nil => (fore, rear),
+            &Cons(ref head, ref tail) => {
+                if index % 2 == 0 {
+                    tail.split_impl(index + 1, (fore.snoc(head.clone()), rear))
+                } else {
+                    tail.split_impl(index + 1, (fore, rear.snoc(head.clone())))
+                }
+            }
+        }
+    }
+
+    fn split(&self) -> (Self, Self) {
+        self.split_impl(0, (Nil, Nil))
     }
 }
 
@@ -80,21 +104,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_split() {
+        let actual = LinkedList::empty().snoc(1).snoc(2).snoc(3).snoc(4).split();
+        assert!(is_match_with_vec(actual.0, vec![1, 2]));
+        assert!(is_match_with_vec(actual.1, vec![3, 4]));
+    }
+
+
+    #[test]
     fn test_reverse() {
-        let actual = LinkedList::empty().cons(1).cons(2).cons(3).reverse();
+        let actual = LinkedList::empty().snoc(1).snoc(2).snoc(3).reverse();
         assert!(is_match_with_vec(actual, vec![3, 2, 1]));
     }
 
     #[test]
     fn test_update() {
-        let actual = LinkedList::empty().cons(1).cons(2).cons(3).update(1, 4);
+        let actual = LinkedList::empty().snoc(1).snoc(2).snoc(3).update(1, 4);
         assert!(is_match_with_vec(actual, vec![1, 4, 3]));
     }
 
     #[test]
     fn test_concat() {
-        let actual_1 = LinkedList::empty().cons(1).cons(2).cons(3);
-        let actual_2 = LinkedList::empty().cons(4).cons(5).cons(6);
+        let actual_1 = LinkedList::empty().snoc(1).snoc(2).snoc(3);
+        let actual_2 = LinkedList::empty().snoc(4).snoc(5).snoc(6);
         let actual = actual_1.concat(actual_2);
         assert!(is_match_with_vec(actual, vec![1, 2, 3, 4, 5, 6]));
     }
