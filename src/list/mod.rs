@@ -20,6 +20,9 @@ pub fn is_match_with_vec<T, L>(xs: L, ys: Vec<T>) -> bool
     where T: Debug + PartialEq + PartialOrd + Clone,
             L: List<T>
 {
+    if ys.is_empty() {
+        return xs.is_empty()
+    }
     ys.iter()
         .fold((xs, true), |(xs, prev), y| {
             let head = xs.head();

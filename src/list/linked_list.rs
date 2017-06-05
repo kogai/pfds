@@ -75,28 +75,59 @@ impl<T> LinkedList<T>
         }
     }
 
-    fn snoc(&self, x: T) -> Self {
+    fn len_impl(&self, l: i32) -> i32 {
+        match self {
+            &Nil => l,
+            &Cons(_, ref tail) => tail.len_impl(l + 1),
+        }
+    }
+
+    pub fn len(&self) -> i32 {
+        self.len_impl(0)
+    }
+
+    fn median(&self) -> i32 {
+        match self.len() {
+            0 => unreachable!(),
+            n => (n as f32 / 2.0).round() as i32,
+        }
+    }
+
+    pub fn take(&self, n: i32) -> Self {
+        match self {
+            &Nil => Nil,
+            _ if n == 0 => Nil,
+            &Cons(ref head, ref tail) => Cons(head.clone(), box tail.take(n - 1)),
+        }
+    }
+
+    pub fn drop_nth(&self, n: i32) -> Self {
+        match self {
+            &Nil => self.clone(),
+            _ if n == 0 => self.clone(),
+            &Cons(_, box ref tail) => tail.drop_nth(n - 1),
+        }
+    }
+
+    pub fn init(&self) -> Self {
+        self.take(self.len() - 1)
+    }
+
+    pub fn snoc(&self, x: T) -> Self {
         match self {
             &Nil => Cons(x, box Nil),
             &Cons(ref head, ref tail) => Cons(head.clone(), box tail.snoc(x)),
         }
     }
 
-    fn split_impl(&self, index: i32, (fore, rear): (Self, Self)) -> (Self, Self) {
+    pub fn split(&self) -> (Self, Self) {
         match self {
-            &Nil => (fore, rear),
-            &Cons(ref head, ref tail) => {
-                if index % 2 == 0 {
-                    tail.split_impl(index + 1, (fore.snoc(head.clone()), rear))
-                } else {
-                    tail.split_impl(index + 1, (fore, rear.snoc(head.clone())))
-                }
+            &Nil => (Nil, Nil),
+            &Cons(_, _) => {
+                let median = self.median();
+                (self.take(median), self.drop_nth(median))
             }
         }
-    }
-
-    fn split(&self) -> (Self, Self) {
-        self.split_impl(0, (Nil, Nil))
     }
 }
 
@@ -104,12 +135,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_split() {
-        let actual = LinkedList::empty().snoc(1).snoc(2).snoc(3).snoc(4).split();
-        assert!(is_match_with_vec(actual.0, vec![1, 2]));
-        assert!(is_match_with_vec(actual.1, vec![3, 4]));
+    fn test_drop() {
+        let actual = LinkedList::empty().cons(1);
+        assert!(is_match_with_vec(actual.drop_nth(0), vec![1]));
+        assert!(is_match_with_vec(actual.drop_nth(1), vec![]));
     }
 
+    #[test]
+    fn test_take() {
+        let actual = LinkedList::empty().cons(1);
+        assert!(is_match_with_vec(actual.take(0), vec![]));
+        assert!(is_match_with_vec(actual.take(1), vec![1]));
+    }
+
+    #[test]
+    fn test_split() {
+        let actual = LinkedList::empty().snoc(1).snoc(2).snoc(3).split();
+        assert!(is_match_with_vec(actual.0, vec![1, 2]));
+        assert!(is_match_with_vec(actual.1, vec![3]));
+
+        let actual = LinkedList::empty().cons(1).split();
+        assert!(is_match_with_vec(actual.0, vec![1]));
+        assert!(is_match_with_vec(actual.1, vec![]));
+    }
 
     #[test]
     fn test_reverse() {
