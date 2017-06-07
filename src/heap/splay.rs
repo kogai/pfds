@@ -67,6 +67,13 @@ impl<T> SplayHeap<T>
         xs.into_iter()
             .fold(SplayHeap::empty(), |acc, x| acc.insert(x))
     }
+
+    fn len(&self) -> i32 {
+        match self {
+            &Empty => 0,
+            &Tree(box ref left, _, box ref right) => 1 + left.len() + right.len(),
+        }
+    }
 }
 
 impl<T> Heap<T> for SplayHeap<T>
@@ -85,13 +92,34 @@ impl<T> Heap<T> for SplayHeap<T>
         Tree(box self.smaller(&x), x.clone(), box self.bigger(&x))
     }
     fn merge(&self, other: &Self) -> Self {
-        unimplemented!();
+        match self {
+            &Empty => other.clone(),
+            &Tree(box ref left, ref x, box ref right) => {
+                let small = other.smaller(x);
+                let big = other.bigger(x);
+                Tree(box left.merge(&small), x.clone(), box right.merge(&big))
+            }
+        }
     }
+
     fn find_min(&self) -> Option<T> {
-        unimplemented!();
+        match self {
+            &Empty => None,
+            &Tree(box Empty, ref x, _) => Some(x.clone()),
+            &Tree(box ref left, _, _) => left.find_min(),
+        }
     }
+
     fn delete_min(&self) -> Self {
-        unimplemented!();
+        match self {
+            &Empty => Empty,
+            &Tree(box Empty, _, box ref right) => right.clone(),
+            &Tree(box Tree(ref left, ref x, ref right), ref y, ref right2) => {
+                Tree(box left.delete_min(),
+                     x.clone(),
+                     box Tree(right.clone(), y.clone(), right2.clone()))
+            }
+        }
     }
 }
 
@@ -99,11 +127,34 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_merge() {
+        let actual_1 = SplayHeap::from_vec(vec![3, 2, 5]);
+        let actual_2 = SplayHeap::from_vec(vec![1, 6, 4]);
+        let actual = actual_1.merge(&actual_2);
+        assert!(actual.len() == 6);
+        assert!(is_left_node_small(&actual));
+        assert!(is_right_node_big(&actual));
+    }
+
+    #[test]
+    fn test_delete_min() {
+        let actual = SplayHeap::from_vec(vec![3, 2, 5, 1, 6, 4]).delete_min();
+        assert!(actual.len() == 5);
+        assert!(actual.find_min() == Some(2));
+        assert!(is_left_node_small(&actual));
+        assert!(is_right_node_big(&actual));
+    }
+
+    #[test]
+    fn test_find_min() {
+        let actual = SplayHeap::from_vec(vec![3, 2, 5, 1, 6, 4]).find_min();
+        assert!(actual == Some(1));
+    }
+
+    #[test]
     fn test_insert() {
         let actual = SplayHeap::from_vec(vec![3, 2, 5, 1, 6, 4]);
-
-        println!("{:?}", actual);
-
+        assert!(actual.len() == 6);
         assert!(is_left_node_small(&actual));
         assert!(is_right_node_big(&actual));
     }
