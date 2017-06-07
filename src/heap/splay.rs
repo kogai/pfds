@@ -1,16 +1,12 @@
 use std::fmt::Debug;
 use heap::Heap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum SplayHeap<T>
     where T: Clone + Ord + PartialEq + Debug
 {
     Empty,
-    Tree {
-        element: T,
-        left: Box<SplayHeap<T>>,
-        right: Box<SplayHeap<T>>,
-    },
+    Tree(Box<SplayHeap<T>>, T, Box<SplayHeap<T>>),
 }
 
 use self::SplayHeap::*;
@@ -20,7 +16,27 @@ impl<T> SplayHeap<T>
     where T: Clone + Ord + PartialEq + Debug
 {
     fn bigger(&self, pivot: &T) -> Self {
-        unimplemented!();
+        match self {
+            &Empty => Empty,
+            &Tree(box ref left, ref x, box ref right) => {
+                if x <= pivot {
+                    right.bigger(pivot)
+                } else {
+                    match left {
+                        &Empty => Tree(box Empty, x.clone(), box right.clone()),
+                        &Tree(box ref left2, ref y, box ref right2) => {
+                            if y <= pivot {
+                                Tree(box right2.bigger(pivot), x.clone(), box right.clone())
+                            } else {
+                                Tree(box left2.bigger(pivot),
+                                     y.clone(),
+                                     box Tree(box right2.clone(), x.clone(), box right.clone()))
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn smaller(&self, pivot: &T) -> Self {
@@ -28,8 +44,8 @@ impl<T> SplayHeap<T>
     }
 
     fn from_vec(xs: Vec<T>) -> Self {
-        xs.iter()
-            .fold(SplayHeap::empty(), |acc, x| acc.insert(x.clone()))
+        xs.into_iter()
+            .fold(SplayHeap::empty(), |acc, x| acc.insert(x))
     }
 }
 
@@ -46,11 +62,7 @@ impl<T> Heap<T> for SplayHeap<T>
         }
     }
     fn insert(&self, x: T) -> Self {
-        Tree {
-            left: box self.smaller(&x),
-            right: box self.bigger(&x),
-            element: x,
-        }
+        Tree(box self.smaller(&x), x.clone(), box self.bigger(&x))
     }
     fn merge(&self, other: &Self) -> Self {
         unimplemented!();
@@ -78,11 +90,9 @@ mod tests {
     {
         match tree {
             &Empty => true,
-            &Tree {
-                ref element,
-                ref left,
-                ..
-            } => pivot >= element && is_left_node_small_impl(left, element),
+            &Tree(ref left, ref element, _) => {
+                pivot >= element && is_left_node_small_impl(left, element)
+            }
         }
     }
 
@@ -91,11 +101,7 @@ mod tests {
     {
         match tree {
             &Empty => true,
-            &Tree {
-                ref element,
-                ref left,
-                ..
-            } => is_left_node_small_impl(left, element),
+            &Tree(ref left, ref element, _) => is_left_node_small_impl(left, element),
         }
     }
 
@@ -104,11 +110,9 @@ mod tests {
     {
         match tree {
             &Empty => true,
-            &Tree {
-                ref element,
-                ref right,
-                ..
-            } => pivot < element && is_right_node_small_impl(right, element),
+            &Tree(_, ref element, ref right) => {
+                pivot < element && is_right_node_small_impl(right, element)
+            }
         }
     }
 
@@ -117,11 +121,7 @@ mod tests {
     {
         match tree {
             &Empty => true,
-            &Tree {
-                ref element,
-                ref right,
-                ..
-            } => is_right_node_small_impl(right, element),
+            &Tree(_, ref element, ref right) => is_right_node_small_impl(right, element),
         }
     }
 }
