@@ -3,8 +3,9 @@ use std::fmt::Debug;
 mod leftist;
 mod binominal;
 mod explicit_min;
+mod splay;
 
-trait Heap<T: Clone + Debug + Ord> {
+pub trait Heap<T: Clone + Debug + Ord> {
     fn empty() -> Self;
     fn is_empty_heap(&self) -> bool;
     fn insert(&self, x: T) -> Self;
