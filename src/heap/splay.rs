@@ -40,7 +40,27 @@ impl<T> SplayHeap<T>
     }
 
     fn smaller(&self, pivot: &T) -> Self {
-        unimplemented!();
+        match self {
+            &Empty => Empty,
+            &Tree(box ref left, ref x, box ref right) => {
+                if x > pivot {
+                    left.smaller(pivot)
+                } else {
+                    match right {
+                        &Empty => Tree(box left.clone(), x.clone(), box Empty),
+                        &Tree(box ref left2, ref y, box ref right2) => {
+                            if y > pivot {
+                                Tree(box left.clone(), x.clone(), box right2.smaller(pivot))
+                            } else {
+                                Tree(box Tree(box left.clone(), x.clone(), box left2.clone()),
+                                     y.clone(),
+                                     box right2.smaller(pivot))
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn from_vec(xs: Vec<T>) -> Self {
@@ -81,6 +101,9 @@ mod tests {
     #[test]
     fn test_insert() {
         let actual = SplayHeap::from_vec(vec![3, 2, 5, 1, 6, 4]);
+
+        println!("{:?}", actual);
+
         assert!(is_left_node_small(&actual));
         assert!(is_right_node_big(&actual));
     }
